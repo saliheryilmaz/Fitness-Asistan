@@ -1,0 +1,111 @@
+{% extends 'tracker/base.html' %}
+
+{% block title %}Geçmiş – KaloriAI{% endblock %}
+
+{% block extra_head %}
+<style>
+    .day-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+        margin-bottom: 1rem;
+    }
+
+    .day-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem 1.25rem;
+        background: var(--surface2);
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .day-date {
+        font-family: 'Syne', sans-serif;
+        font-weight: 700;
+        font-size: 0.95rem;
+    }
+
+    .day-total {
+        font-family: 'Syne', sans-serif;
+        font-weight: 700;
+        color: var(--accent);
+    }
+
+    .day-meals { padding: 0; }
+
+    .history-meal {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.875rem 1.25rem;
+        border-top: 1px solid var(--border);
+        gap: 1rem;
+    }
+
+    .history-meal:hover { background: rgba(255,255,255,0.02); }
+
+    .meal-type-badge {
+        font-size: 0.75rem;
+        padding: 0.2rem 0.6rem;
+        border-radius: 999px;
+        background: var(--surface2);
+        color: var(--text-muted);
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .meal-thumb {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        object-fit: cover;
+        border: 1px solid var(--border);
+        flex-shrink: 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1 class="page-heading">Öğün Geçmişi</h1>
+<p class="page-sub">Tüm geçmiş öğünlerin</p>
+
+{% if meals_by_date %}
+    {% for day, data in meals_by_date.items %}
+    <div class="day-card">
+        <div class="day-header">
+            <span class="day-date">📅 {{ day|date:"d F Y, l" }}</span>
+            <span class="day-total">{{ data.total_calories }} kcal</span>
+        </div>
+        <div class="day-meals">
+            {% for meal in data.meals %}
+            <div class="history-meal">
+                {% if meal.image %}
+                <img src="{{ meal.image.url }}" class="meal-thumb" alt="">
+                {% endif %}
+                <span class="meal-type-badge">{{ meal.get_meal_type_display }}</span>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:0.875rem;">{{ meal.description|truncatechars:70 }}</div>
+                    <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.2rem;">
+                        P:{{ meal.protein_g|floatformat:0 }}g · K:{{ meal.carbs_g|floatformat:0 }}g · Y:{{ meal.fat_g|floatformat:0 }}g
+                    </div>
+                </div>
+                <span style="font-family:Syne,sans-serif;font-weight:700;color:var(--accent);white-space:nowrap;">{{ meal.total_calories }} kcal</span>
+                <a href="{% url 'delete_meal' meal.id %}" class="btn btn-danger btn-sm"
+                   onclick="return confirm('Bu öğünü silmek istediğine emin misin?')">✕</a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="card" style="text-align:center;padding:4rem 2rem;color:var(--text-muted);">
+        <div style="font-size:3rem;margin-bottom:1rem;">📭</div>
+        <p style="font-family:Syne,sans-serif;font-weight:700;color:var(--text);font-size:1.1rem;">Henüz öğün kaydı yok</p>
+        <p>Dashboard'dan öğün ekleyerek başlayabilirsin.</p>
+        <a href="{% url 'dashboard' %}" class="btn btn-primary" style="margin-top:1.5rem;">Ana Sayfaya Git</a>
+    </div>
+{% endif %}
+{% endblock %}

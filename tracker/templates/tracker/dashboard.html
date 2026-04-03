@@ -1,0 +1,405 @@
+{% extends 'tracker/base.html' %}
+{% block title %}Dashboard — FitTrack{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── DASHBOARD LAYOUT ── */
+.db-header { margin-bottom: 1.5rem; }
+.db-header h1 { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.3px; margin-bottom: 0.15rem; }
+.db-header .db-sub { color: var(--text-2); font-size: 0.85rem; }
+.db-date {
+    display: inline-block; margin-top: 0.5rem;
+    font-size: 0.75rem; color: var(--text-3);
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 0.25rem 0.7rem;
+}
+
+/* ── KALORI KARTI ── */
+.kcal-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 1.5rem;
+    margin-bottom: 1.25rem;
+}
+.kcal-top {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    margin-bottom: 1.25rem;
+}
+@media (max-width: 480px) {
+    .kcal-top { flex-direction: column; align-items: center; gap: 1.25rem; }
+}
+
+/* Ring */
+.db-ring { position: relative; width: 110px; height: 110px; flex-shrink: 0; }
+.db-ring svg { transform: rotate(-90deg); display: block; }
+.db-ring-bg { fill: none; stroke: var(--surface3); stroke-width: 8; }
+.db-ring-fill {
+    fill: none; stroke: var(--accent); stroke-width: 8;
+    stroke-linecap: round;
+    stroke-dasharray: 283;
+    stroke-dashoffset: 283;
+    transition: stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1);
+}
+.db-ring-center {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+}
+.db-ring-num { font-size: 1.3rem; font-weight: 800; color: var(--accent); line-height: 1; }
+.db-ring-lbl { font-size: 0.6rem; color: var(--text-3); margin-top: 0.15rem; }
+
+/* Stat rows */
+.db-stats { flex: 1; display: flex; flex-direction: column; gap: 0.45rem; width: 100%; }
+.db-stat-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.45rem 0.75rem;
+    background: var(--surface2); border-radius: 9px;
+    font-size: 0.82rem;
+}
+.db-stat-row .sl { color: var(--text-2); }
+.db-stat-row .sv { font-weight: 700; }
+
+/* Yakılan form */
+.burned-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0.85rem 1rem;
+    margin-bottom: 1.25rem;
+}
+.burned-box label { font-size: 0.75rem; color: var(--text-3); display: block; margin-bottom: 0.5rem; }
+.burned-row { display: flex; gap: 0.5rem; align-items: center; }
+.burned-row input {
+    flex: 1; padding: 0.55rem 0.75rem;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-size: 0.9rem;
+    outline: none; font-family: var(--font);
+}
+.burned-row input:focus { border-color: var(--accent); }
+.burned-row span { font-size: 0.78rem; color: var(--text-3); white-space: nowrap; }
+.burned-row button {
+    padding: 0.55rem 1rem; background: var(--accent);
+    border: none; border-radius: 8px; color: #fff;
+    font-weight: 600; font-size: 0.82rem; cursor: pointer;
+    white-space: nowrap; font-family: var(--font);
+}
+
+/* Makrolar */
+.db-macros { display: grid; grid-template-columns: repeat(3,1fr); gap: 0.75rem; }
+.db-macro-item {}
+.db-macro-head {
+    display: flex; justify-content: space-between;
+    font-size: 0.75rem; margin-bottom: 0.35rem;
+}
+.db-macro-head .mn { color: var(--text-3); }
+.db-macro-head .mv { font-weight: 700; }
+.db-macro-track { background: var(--surface3); border-radius: 100px; height: 5px; overflow: hidden; }
+.db-macro-fill { height: 100%; border-radius: 100px; transition: width 1s ease; }
+.db-macro-fill.p { background: var(--accent); }
+.db-macro-fill.c { background: var(--amber); }
+.db-macro-fill.f { background: var(--purple); }
+
+/* ── 2 KOLON GRID ── */
+.db-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+    margin-bottom: 1.25rem;
+}
+@media (max-width: 600px) { .db-grid { grid-template-columns: 1fr; } }
+
+.db-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.25rem;
+}
+.db-card-head {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 1rem;
+}
+.db-card-head h3 { font-size: 0.9rem; font-weight: 700; }
+.db-card-head a { font-size: 0.78rem; color: var(--accent); text-decoration: none; font-weight: 600; }
+
+/* Öğünler */
+.db-meal-type { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-3); margin-bottom: 0.35rem; }
+.db-meal-item {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.55rem 0.7rem;
+    background: var(--surface2); border-radius: 8px;
+    margin-bottom: 0.3rem;
+}
+.db-meal-photo { width: 32px; height: 32px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
+.db-meal-name { font-size: 0.8rem; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.db-meal-kcal { font-size: 0.78rem; font-weight: 700; color: var(--green); white-space: nowrap; }
+.db-meal-del {
+    background: none; border: none; color: var(--text-3);
+    cursor: pointer; font-size: 0.8rem; padding: 0.15rem 0.3rem;
+    border-radius: 4px; line-height: 1;
+}
+.db-meal-del:hover { color: var(--red); }
+
+/* Haftalık bar */
+.db-week { display: flex; align-items: flex-end; gap: 5px; height: 72px; }
+.db-bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.db-bar-track {
+    width: 100%; background: var(--surface3);
+    border-radius: 4px; height: 52px;
+    display: flex; align-items: flex-end;
+}
+.db-bar-fill { width: 100%; border-radius: 4px; background: var(--surface3); min-height: 2px; transition: height 0.8s ease; }
+.db-bar-fill.has { background: #1e3a5f; }
+.db-bar-fill.today { background: var(--accent); }
+.db-bar-lbl { font-size: 0.6rem; color: var(--text-3); }
+
+/* Kilo */
+.db-weight-stats { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.db-wstat {
+    background: var(--surface2); border-radius: 9px;
+    padding: 0.45rem 0.8rem;
+}
+.db-wstat .wl { font-size: 0.68rem; color: var(--text-3); margin-bottom: 0.1rem; }
+.db-wstat .wv { font-size: 0.9rem; font-weight: 700; }
+
+.db-empty {
+    text-align: center; padding: 1.5rem 1rem;
+    color: var(--text-3); font-size: 0.82rem;
+}
+.db-empty a { color: var(--accent); text-decoration: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+
+    <div class="db-header">
+        <h1>Merhaba, {{ user.first_name|default:user.username }}</h1>
+        <p class="db-sub">Günlük beslenme özeti</p>
+        <span class="db-date">{{ today|date:"d F Y" }}</span>
+    </div>
+
+    <!-- Kalori Kartı -->
+    <div class="kcal-card">
+        <div class="kcal-top">
+            <div class="db-ring">
+                <svg width="110" height="110" viewBox="0 0 110 110">
+                    <circle class="db-ring-bg" cx="55" cy="55" r="45"/>
+                    <circle class="db-ring-fill" cx="55" cy="55" r="45" id="dbRing"/>
+                </svg>
+                <div class="db-ring-center">
+                    <div class="db-ring-num">{{ total_cal }}</div>
+                    <div class="db-ring-lbl">kcal yendi</div>
+                </div>
+            </div>
+            <div class="db-stats">
+                <div class="db-stat-row">
+                    <span class="sl">Günlük Hedef</span>
+                    <span class="sv">{{ goal }} kcal</span>
+                </div>
+                <div class="db-stat-row">
+                    <span class="sl">Tüketilen</span>
+                    <span class="sv" style="color:var(--green);">{{ total_cal }} kcal</span>
+                </div>
+                <div class="db-stat-row">
+                    <span class="sl">Kalan</span>
+                    <span class="sv" style="color:{% if remaining == 0 %}var(--red){% else %}var(--amber){% endif %};">{{ remaining }} kcal</span>
+                </div>
+                <div class="db-stat-row">
+                    <span class="sl">Yakılan</span>
+                    <span class="sv" style="color:var(--red);">{{ burned_calories }} kcal</span>
+                </div>
+                <div class="db-stat-row">
+                    <span class="sl">Net Kalori</span>
+                    <span class="sv">{{ net_calories }} kcal</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Yakılan kalori girişi -->
+        <div class="burned-box">
+            <label>Yakılan kaloriyi gir (Mi Fitness, Apple Health vb.)</label>
+            <form method="post" action="/yakilan-kalori/" class="burned-row">
+                {% csrf_token %}
+                <input type="number" name="burned_calories" value="{{ burned_calories }}" min="0" max="9999" placeholder="0">
+                <span>kcal</span>
+                <button type="submit">Kaydet</button>
+            </form>
+        </div>
+
+        <!-- Makrolar -->
+        <div class="db-macros">
+            <div class="db-macro-item">
+                <div class="db-macro-head">
+                    <span class="mn">Protein</span>
+                    <span class="mv" style="color:var(--accent);">{{ total_protein }}g</span>
+                </div>
+                <div class="db-macro-track">
+                    <div class="db-macro-fill p" style="width:{% widthratio total_protein 150 100 %}%"></div>
+                </div>
+            </div>
+            <div class="db-macro-item">
+                <div class="db-macro-head">
+                    <span class="mn">Karbonhidrat</span>
+                    <span class="mv" style="color:var(--amber);">{{ total_carbs }}g</span>
+                </div>
+                <div class="db-macro-track">
+                    <div class="db-macro-fill c" style="width:{% widthratio total_carbs 300 100 %}%"></div>
+                </div>
+            </div>
+            <div class="db-macro-item">
+                <div class="db-macro-head">
+                    <span class="mn">Yağ</span>
+                    <span class="mv" style="color:var(--purple);">{{ total_fat }}g</span>
+                </div>
+                <div class="db-macro-track">
+                    <div class="db-macro-fill f" style="width:{% widthratio total_fat 80 100 %}%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Öğünler + Haftalık -->
+    <div class="db-grid">
+        <div class="db-card">
+            <div class="db-card-head">
+                <h3>Bugünkü Öğünler</h3>
+                <a href="{% url 'ogun_ekle' %}">+ Ekle</a>
+            </div>
+            {% for meal_type, data in meals_by_type.items %}
+            {% if data.meals %}
+            <div style="margin-bottom:0.85rem;">
+                <div class="db-meal-type">{{ data.label }} · {{ data.calories }} kcal</div>
+                {% for meal in data.meals %}
+                <div class="db-meal-item">
+                    {% if meal.photo %}<img src="{{ meal.photo.url }}" class="db-meal-photo" alt="">{% endif %}
+                    <span class="db-meal-name">{{ meal.food_description|truncatechars:30 }}</span>
+                    <span class="db-meal-kcal">{{ meal.total_calories }}</span>
+                    <button class="db-meal-del" onclick="if(confirm('Silinsin mi?'))window.location='{% url 'ogun_sil' meal.pk %}'">✕</button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endfor %}
+            {% if not today_meals %}
+            <div class="db-empty">
+                <p style="margin-bottom:0.4rem;">Henüz öğün eklenmedi.</p>
+                <a href="{% url 'ogun_ekle' %}">İlk öğünü ekle →</a>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="db-card">
+            <div class="db-card-head"><h3>Son 7 Gün</h3></div>
+            <div class="db-week" id="dbWeek"></div>
+        </div>
+    </div>
+
+    <!-- Kilo Takibi -->
+    <div class="db-card" style="margin-bottom:1.25rem;">
+        <div class="db-card-head">
+            <h3>Kilo Takibi</h3>
+            <a href="{% url 'kilo_ekle' %}">+ Ekle</a>
+        </div>
+        {% if latest_weight %}
+        <div class="db-weight-stats">
+            <div class="db-wstat">
+                <div class="wl">Mevcut</div>
+                <div class="wv" style="color:var(--accent);">{{ latest_weight.weight_kg }} kg</div>
+            </div>
+            {% if profile.target_weight_kg %}
+            <div class="db-wstat">
+                <div class="wl">Hedef</div>
+                <div class="wv" style="color:var(--amber);">{{ profile.target_weight_kg }} kg</div>
+            </div>
+            {% endif %}
+            {% if weight_change %}
+            <div class="db-wstat">
+                <div class="wl">Değişim</div>
+                <div class="wv" style="color:{% if weight_change < 0 %}var(--green){% else %}var(--red){% endif %};">
+                    {% if weight_change > 0 %}+{% endif %}{{ weight_change }} kg
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        <div style="position:relative;height:160px;"><canvas id="dbWeightCanvas"></canvas></div>
+        {% else %}
+        <div class="db-empty">
+            <p style="margin-bottom:0.4rem;">Henüz kilo kaydı eklenmedi.</p>
+            <a href="{% url 'kilo_ekle' %}">İlk kaydı ekle →</a>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Ring animasyonu — r=45, circumference = 2*π*45 ≈ 282.7
+const dbCirc = 282.7;
+const dbPct  = {{ progress_pct }};
+const dbOffset = dbCirc - (dbCirc * Math.min(dbPct, 100) / 100);
+document.getElementById('dbRing').style.strokeDasharray = dbCirc;
+document.getElementById('dbRing').style.strokeDashoffset = dbOffset;
+
+// Haftalık bar chart
+const dbWeekData = {{ week_data|safe }};
+const dbMaxCal = Math.max(...dbWeekData.map(d => d.calories), 1);
+const dbWeekEl = document.getElementById('dbWeek');
+dbWeekData.forEach((d, i) => {
+    const h = d.calories > 0 ? Math.max((d.calories / dbMaxCal) * 100, 6) : 0;
+    const isToday = i === dbWeekData.length - 1;
+    const cls = isToday ? 'today' : (d.calories > 0 ? 'has' : '');
+    dbWeekEl.innerHTML += `
+        <div class="db-bar-col">
+            <div class="db-bar-track">
+                <div class="db-bar-fill ${cls}" style="height:${h}%" title="${d.calories} kcal"></div>
+            </div>
+            <div class="db-bar-lbl">${d.date}</div>
+        </div>`;
+});
+
+// Kilo grafiği
+const dbWeightData = {{ weight_data|safe }};
+if (dbWeightData && dbWeightData.length > 0) {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+    s.onload = () => {
+        const weights = dbWeightData.map(d => d.weight);
+        const minW = Math.min(...weights), maxW = Math.max(...weights);
+        const pad = (maxW - minW) < 1 ? 1.5 : (maxW - minW) * 0.25;
+        new Chart(document.getElementById('dbWeightCanvas').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: dbWeightData.map(d => d.date),
+                datasets: [{
+                    data: weights,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59,130,246,0.07)',
+                    borderWidth: 2,
+                    pointBackgroundColor: '#3b82f6',
+                    pointRadius: 3,
+                    fill: true, tension: 0.4,
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { color: '#475569', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+                    y: {
+                        min: minW - pad, max: maxW + pad,
+                        ticks: { color: '#475569', font: { size: 10 }, callback: v => v.toFixed(1) + ' kg' },
+                        grid: { color: 'rgba(255,255,255,0.04)' }
+                    }
+                }
+            }
+        });
+    };
+    document.head.appendChild(s);
+}
+</script>
+{% endblock %}

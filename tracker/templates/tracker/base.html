@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#080c12">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>{% block title %}Kalori Takip{% endblock %}</title>
+    {% load static %}
+    <link rel="icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}">
+    <link rel="manifest" href="/static/manifest.json">
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => navigator.serviceWorker.register('/static/sw.js'));
+      }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg:        #080c12;
+            --bg2:       #0d1117;
+            --surface:   #0f1520;
+            --surface2:  #161d2e;
+            --surface3:  #1c2538;
+            --border:    #1e2d45;
+            --border2:   #253550;
+
+            --accent:    #3b82f6;
+            --accent-dim:#2563eb;
+            --accent-glow: rgba(59,130,246,0.18);
+            --accent-soft: rgba(59,130,246,0.08);
+
+            --green:     #22c55e;
+            --green-glow:rgba(34,197,94,0.15);
+            --green-soft:rgba(34,197,94,0.08);
+
+            --amber:     #f59e0b;
+            --red:       #ef4444;
+            --purple:    #a855f7;
+            --cyan:      #06b6d4;
+
+            --text:      #f1f5f9;
+            --text-2:    #94a3b8;
+            --text-3:    #475569;
+
+            --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --radius: 14px;
+            --radius-sm: 9px;
+            --radius-lg: 20px;
+        }
+
+        *, *::before, *::after {
+            margin: 0; padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font);
+            min-height: 100vh;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ─── TOP NAV (desktop) ─── */
+        .top-nav {
+            background: rgba(8,12,18,0.95);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 200;
+        }
+        .nav-inner {
+            max-width: 1280px; margin: 0 auto;
+            display: flex; align-items: center;
+            justify-content: space-between;
+            height: 60px; padding: 0 1.5rem;
+        }
+        .nav-logo {
+            font-weight: 900; font-size: 1.1rem;
+            color: var(--text); text-decoration: none;
+            letter-spacing: -0.5px;
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        .logo-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 8px var(--accent);
+        }
+        .nav-links {
+            display: flex; align-items: center; gap: 0.2rem;
+        }
+        .nav-links a {
+            color: var(--text-2); text-decoration: none;
+            padding: 0.45rem 0.9rem; border-radius: var(--radius-sm);
+            font-size: 0.85rem; font-weight: 500;
+            transition: all 0.15s; white-space: nowrap;
+        }
+        .nav-links a:hover { color: var(--text); background: var(--surface2); }
+        .nav-links a.active { color: var(--accent); background: var(--accent-soft); }
+        .nav-links .nav-cta {
+            background: var(--accent); color: #fff !important;
+            font-weight: 600; padding: 0.45rem 1rem;
+        }
+        .nav-links .nav-cta:hover { background: var(--accent-dim); }
+        .nav-links .nav-out {
+            color: var(--text-3) !important;
+            border: 1px solid var(--border);
+        }
+        .nav-links .nav-out:hover {
+            color: var(--red) !important;
+            border-color: rgba(239,68,68,0.4);
+            background: rgba(239,68,68,0.06);
+        }
+
+        /* ─── BOTTOM NAV (mobile) ─── */
+        .bottom-nav {
+            display: none;
+            position: fixed; bottom: 0; left: 0; right: 0;
+            z-index: 300;
+            background: rgba(8,12,18,0.97);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .bottom-nav-inner {
+            display: flex; align-items: stretch;
+            height: 58px;
+        }
+        .bnav-item {
+            flex: 1;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            gap: 3px;
+            text-decoration: none;
+            color: var(--text-3);
+            font-size: 0.6rem; font-weight: 600;
+            letter-spacing: 0.03em;
+            transition: color 0.15s;
+            position: relative;
+        }
+        .bnav-item.active { color: var(--accent); }
+        .bnav-item.active::before {
+            content: '';
+            position: absolute; top: 0; left: 20%; right: 20%;
+            height: 2px; border-radius: 0 0 2px 2px;
+            background: var(--accent);
+        }
+        .bnav-icon {
+            width: 22px; height: 22px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .bnav-icon svg { width: 20px; height: 20px; }
+        .bnav-cta {
+            flex: 1;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            gap: 3px;
+            text-decoration: none;
+            color: #fff;
+            font-size: 0.6rem; font-weight: 700;
+            letter-spacing: 0.03em;
+        }
+        .bnav-cta-icon {
+            width: 36px; height: 36px;
+            background: var(--accent);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 12px var(--accent-glow);
+        }
+        .bnav-cta-icon svg { width: 18px; height: 18px; }
+
+        @media (max-width: 767px) {
+            .top-nav { display: none; }
+            .bottom-nav { display: block; }
+            body { padding-bottom: calc(58px + env(safe-area-inset-bottom)); }
+
+            /* Mobilde üst bar sadece logo + çıkış */
+            .mobile-topbar {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0.75rem 1rem;
+                background: rgba(8,12,18,0.95);
+                backdrop-filter: blur(20px);
+                border-bottom: 1px solid var(--border);
+                position: sticky; top: 0; z-index: 200;
+            }
+            .mobile-topbar .nav-logo { font-size: 1rem; }
+            .mobile-topbar .topbar-right {
+                display: flex; align-items: center; gap: 0.5rem;
+            }
+            .mobile-topbar a.topbar-out {
+                font-size: 0.75rem; color: var(--text-3);
+                text-decoration: none; padding: 0.35rem 0.65rem;
+                border: 1px solid var(--border); border-radius: 7px;
+            }
+        }
+        @media (min-width: 768px) {
+            .mobile-topbar { display: none; }
+        }
+
+        /* ─── MAIN ─── */
+        main {
+            max-width: 1280px; margin: 0 auto;
+            padding: 1.25rem 1rem;
+        }
+        @media (min-width: 768px) { main { padding: 2rem 1.5rem; } }
+
+        /* ─── CARDS ─── */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.25rem;
+        }
+        @media (min-width: 768px) { .card { padding: 1.5rem; } }
+
+        /* ─── FORMS ─── */
+        .form-input {
+            width: 100%;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 0.75rem 1rem;
+            color: var(--text);
+            font-family: var(--font);
+            font-size: 0.9rem;
+            transition: border-color 0.15s, box-shadow 0.15s;
+            outline: none;
+        }
+        .form-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+        .form-input::placeholder { color: var(--text-3); }
+        select.form-input option { background: var(--surface2); }
+        textarea.form-input { resize: vertical; min-height: 90px; }
+        .form-group { margin-bottom: 1.1rem; }
+        .form-label {
+            display: block; font-size: 0.75rem; font-weight: 600;
+            color: var(--text-2); margin-bottom: 0.4rem;
+            text-transform: uppercase; letter-spacing: 0.06em;
+        }
+
+        /* ─── BUTTONS ─── */
+        .btn {
+            padding: 0.7rem 1.25rem;
+            border-radius: var(--radius-sm);
+            border: none; cursor: pointer;
+            font-family: var(--font); font-weight: 600;
+            font-size: 0.875rem;
+            transition: all 0.15s;
+            display: inline-flex; align-items: center;
+            justify-content: center; gap: 0.4rem;
+            text-decoration: none; white-space: nowrap;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary { background: var(--accent); color: #fff; }
+        .btn-primary:hover { background: var(--accent-dim); }
+        .btn-ghost { background: var(--surface2); color: var(--text-2); border: 1px solid var(--border); }
+        .btn-ghost:hover { color: var(--text); border-color: var(--border2); }
+        .btn-danger { background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+        .btn-green { background: var(--green); color: #000; font-weight: 700; }
+        .btn-green:hover { background: #16a34a; }
+
+        /* ─── MESSAGES ─── */
+        .messages-container { margin-bottom: 1.25rem; }
+        .message {
+            padding: 0.75rem 1rem; border-radius: var(--radius-sm);
+            margin-bottom: 0.5rem; font-size: 0.85rem;
+        }
+        .message.success { background: var(--green-soft); border: 1px solid rgba(34,197,94,0.25); color: var(--green); }
+        .message.error, .message.warning { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); color: var(--red); }
+
+        /* ─── UTILS ─── */
+        .text-accent { color: var(--accent); }
+        .text-green  { color: var(--green); }
+        .text-muted  { color: var(--text-2); }
+        .text-dim    { color: var(--text-3); }
+        .text-amber  { color: var(--amber); }
+        .text-red    { color: var(--red); }
+        .section-title {
+            font-size: 0.7rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.1em;
+            color: var(--text-3); margin-bottom: 0.85rem;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in { animation: fadeUp 0.3s ease forwards; }
+
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 10px; }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+{% if user.is_authenticated %}
+
+    <!-- Desktop top nav -->
+    <nav class="top-nav">
+        <div class="nav-inner">
+            <a href="{% url 'dashboard' %}" class="nav-logo">
+                <div class="logo-dot"></div>
+                Kalori Takip
+            </a>
+            <div class="nav-links">
+                <a href="{% url 'dashboard' %}" {% if request.resolver_match.url_name == 'dashboard' %}class="active"{% endif %}>Dashboard</a>
+                <a href="{% url 'gecmis' %}" {% if request.resolver_match.url_name == 'gecmis' %}class="active"{% endif %}>Geçmiş</a>
+                <a href="{% url 'antrenman' %}" {% if 'antrenman' in request.resolver_match.url_name or request.resolver_match.url_name == 'program_detay' %}class="active"{% endif %}>Antrenman</a>
+                <a href="{% url 'profil_duzenle' %}" {% if request.resolver_match.url_name == 'profil_duzenle' %}class="active"{% endif %}>Profil</a>
+                <a href="{% url 'ogun_ekle' %}" class="nav-cta">+ Öğün</a>
+                <a href="{% url 'cikis' %}" class="nav-out">Çıkış</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile top bar -->
+    <div class="mobile-topbar">
+        <a href="{% url 'dashboard' %}" class="nav-logo">
+            <div class="logo-dot"></div>
+            Kalori Takip
+        </a>
+        <div class="topbar-right">
+            <a href="{% url 'cikis' %}" class="topbar-out">Çıkış</a>
+        </div>
+    </div>
+
+    <!-- Mobile bottom nav -->
+    <nav class="bottom-nav">
+        <div class="bottom-nav-inner">
+            <a href="{% url 'dashboard' %}" class="bnav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                <div class="bnav-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+                        <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+                    </svg>
+                </div>
+                Dashboard
+            </a>
+            <a href="{% url 'gecmis' %}" class="bnav-item {% if request.resolver_match.url_name == 'gecmis' %}active{% endif %}">
+                <div class="bnav-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/>
+                    </svg>
+                </div>
+                Geçmiş
+            </a>
+            <a href="{% url 'ogun_ekle' %}" class="bnav-cta">
+                <div class="bnav-cta-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                </div>
+                Öğün
+            </a>
+            <a href="{% url 'antrenman' %}" class="bnav-item {% if 'antrenman' in request.resolver_match.url_name or request.resolver_match.url_name == 'program_detay' %}active{% endif %}">
+                <div class="bnav-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M6 4v16M18 4v16M3 8h4M17 8h4M3 16h4M17 16h4"/>
+                    </svg>
+                </div>
+                Antrenman
+            </a>
+            <a href="{% url 'profil_duzenle' %}" class="bnav-item {% if request.resolver_match.url_name == 'profil_duzenle' %}active{% endif %}">
+                <div class="bnav-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+                    </svg>
+                </div>
+                Profil
+            </a>
+        </div>
+    </nav>
+
+{% endif %}
+
+    <main>
+        {% if messages %}
+        <div class="messages-container">
+            {% for message in messages %}
+            <div class="message {{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,534 @@
+{% extends 'tracker/base.html' %}
+{% block title %}Öğün Ekle — Kalori Takip{% endblock %}
+
+{% block extra_css %}
+<style>
+.add-wrap {
+    max-width: 600px;
+    margin: 0 auto;
+}
+.add-header { margin-bottom: 1.5rem; }
+.add-header h1 { 
+    font-size: 1.5rem; 
+    font-weight: 800; 
+    letter-spacing: -0.5px; 
+}
+.add-header p { 
+    color: var(--text-muted); 
+    font-size: 0.875rem; 
+    margin-top: 0.5rem; 
+    line-height: 1.5;
+}
+
+@media (min-width: 640px) {
+    .add-header h1 { font-size: 1.75rem; }
+    .add-header { margin-bottom: 2rem; }
+}
+
+.tabs { 
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem; 
+    margin-bottom: 1.5rem; 
+}
+.tab-btn {
+    padding: 0.875rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: var(--font);
+    font-weight: 700;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+    text-align: center;
+}
+.tab-btn:active {
+    transform: scale(0.98);
+}
+.tab-btn.active {
+    background: var(--green-glow);
+    border-color: rgba(74,222,128,0.4);
+    color: var(--green);
+}
+
+.photo-drop {
+    border: 2px dashed var(--border);
+    border-radius: 16px;
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    background: var(--surface2);
+}
+
+@media (min-width: 640px) {
+    .photo-drop { padding: 3rem 2rem; }
+}
+
+.photo-drop:hover, .photo-drop.dragover {
+    border-color: var(--green);
+    background: var(--green-glow);
+}
+.photo-drop input[type=file] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+.photo-drop-icon { 
+    font-size: 2.5rem; 
+    margin-bottom: 0.75rem; 
+}
+.photo-drop-text { 
+    color: var(--text-muted); 
+    font-size: 0.875rem; 
+    line-height: 1.5;
+}
+.photo-drop-text strong { 
+    color: var(--green); 
+    font-weight: 600;
+}
+
+#photoPreview {
+    width: 100%;
+    max-height: 250px;
+    object-fit: cover;
+    border-radius: 12px;
+    margin-top: 1rem;
+    display: none;
+}
+
+.ai-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(74,222,128,0.08);
+    border: 1px solid rgba(74,222,128,0.2);
+    border-radius: 100px;
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
+    color: var(--green);
+    margin-bottom: 1.25rem;
+    font-weight: 600;
+}
+
+.loading-state {
+    display: none;
+    text-align: center;
+    padding: 2rem 1.5rem;
+    color: var(--text-muted);
+    background: var(--surface2);
+    border-radius: 12px;
+    margin: 1rem 0;
+}
+.loading-dots::after {
+    content: '...';
+    animation: dots 1.5s infinite;
+}
+@keyframes dots {
+    0%, 33% { content: '.'; }
+    34%, 66% { content: '..'; }
+    67%, 100% { content: '...'; }
+}
+
+.form-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}
+
+@media (min-width: 640px) {
+    .form-actions {
+        flex-direction: row;
+    }
+    .form-actions .btn-primary {
+        flex: 1;
+    }
+}
+
+.manual-fields {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    margin-top: 1rem;
+    padding: 1rem;
+    background: var(--surface2);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+}
+
+@media (min-width: 640px) {
+    .manual-fields {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.manual-toggle {
+    color: var(--green);
+    font-size: 0.8rem;
+    text-decoration: none;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-block;
+    margin-top: 0.5rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="add-wrap fade-in">
+    <div class="add-header">
+        <h1>Öğün Ekle 🍽️</h1>
+        <p>Yemeğini yaz veya fotoğraf yükle, yapay zeka otomatik analiz etsin</p>
+    </div>
+
+    <div class="ai-badge">
+        ⚡ Akıllı Kalori Analizi
+    </div>
+
+    <div class="card">
+        <form method="post" enctype="multipart/form-data" id="mealForm">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label class="form-label">Tarih</label>
+                {{ form.date }}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Öğün Türü</label>
+                {{ form.meal_type }}
+            </div>
+
+            <div class="tabs" >
+                <button type="button" class="tab-btn active" onclick="switchTab('text')">✏️ Metin</button>
+                <button type="button" class="tab-btn" onclick="switchTab('photo')">📸 Fotoğraf</button>
+
+            </div>
+
+            <!-- TEXT TAB -->
+            <div id="textTab">
+                <div class="form-group">
+                    <label class="form-label">Ne Yedin?</label>
+                    <textarea id="textDescription" name="food_description" class="form-input" rows="4" 
+                        placeholder="Örn: 1 porsiyon mercimek çorbası, 2 dilim tam buğday ekmeği, 1 elma...&#10;&#10;Ne kadar yediğini de yazmaya çalış!"></textarea>
+                </div>
+                
+                <a class="manual-toggle" onclick="toggleManual()">📝 Manuel kalori gir</a>
+                
+                <div id="manualFields" style="display:none;">
+                    <div class="manual-fields">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">Kalori (kcal)</label>
+                            {{ form.manuel_kalori }}
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">Protein (g)</label>
+                            {{ form.manuel_protein }}
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">Karbonhidrat (g)</label>
+                            {{ form.manuel_karbonhidrat }}
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">Yağ (g)</label>
+                            {{ form.manuel_yag }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PHOTO TAB -->
+            <div id="photoTab" style="display:none;">
+                <div class="form-group">
+                    <label class="form-label">Yemek Fotoğrafı</label>
+                    <div class="photo-drop" id="photoDrop">
+                        <input type="file" name="photo" id="photoInput" accept="image/*" onchange="previewPhoto(this)" capture="environment">
+                        <div class="photo-drop-icon">📷</div>
+                        <div class="photo-drop-text">
+                            <strong>Fotoğraf çek veya seç</strong><br>
+                            <span style="font-size:0.75rem; margin-top:0.5rem; display:block;">AI fotoğrafı analiz edip kalorileri otomatik hesaplayacak</span>
+                        </div>
+                        <img id="photoPreview" alt="Önizleme">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Ek Açıklama (İsteğe Bağlı)</label>
+                    <input type="text" id="photoDescription" class="form-input" placeholder="Örn: büyük porsiyon, sossuz...">
+                </div>
+            </div>
+
+            
+                    <div id="barkodSonuc" style="display:none;margin-top:1rem;padding:1rem;background:var(--surface);border-radius:10px;border:1px solid var(--green);">
+                        <div style="font-weight:700;margin-bottom:0.5rem;" id="barkodUrunAdi"></div>
+                        <div style="font-size:0.85rem;color:var(--text-muted);" id="barkodDetay"></div>
+                        <div style="margin-top:0.75rem;">
+                            <label style="font-size:0.85rem;color:var(--text-muted);">Miktar (gram):</label>
+                            <div style="display:flex;gap:0.5rem;margin-top:0.4rem;">
+                                <input type="number" id="barkodMiktar" value="100" min="1" max="9999"
+                                    style="width:100px;padding:0.5rem;border-radius:8px;border:1px solid var(--border);background:#111;color:#fff;"
+                                    onchange="barkodKaloriHesapla()">
+                                <span style="line-height:2.2;color:var(--text-muted);">gram</span>
+                            </div>
+                        </div>
+                        <button type="button" onclick="barkodOgunEkle()" style="width:100%;margin-top:0.75rem;padding:0.75rem;background:var(--green);border:none;border-radius:10px;color:#000;font-weight:700;cursor:pointer;">✅ Bu Ürünü Ekle</button>
+                    </div>
+                    <div id="barkodHata" style="display:none;margin-top:1rem;padding:0.75rem;background:rgba(248,113,113,0.1);border-radius:8px;color:var(--red);font-size:0.85rem;"></div>
+                </div>
+            </div>
+
+            <div class="loading-state" id="loadingState">
+                <div style="font-size:2rem; margin-bottom:0.75rem;">🤖</div>
+                <div style="font-weight:600;">Analiz ediliyor<span class="loading-dots"></span></div>
+                <div style="font-size:0.75rem; margin-top:0.5rem; opacity:0.7;">Bu birkaç saniye sürebilir</div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                     Analiz Et & Kaydet
+                </button>
+                <a href="{% url 'dashboard' %}" class="btn btn-ghost">İptal</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentTab = 'text';
+
+function switchTab(tab) {
+    currentTab = tab;
+    document.getElementById('textTab').style.display = tab === 'text' ? 'block' : 'none';
+    document.getElementById('photoTab').style.display = tab === 'photo' ? 'block' : 'none';
+    document.getElementById('barcodeTab').style.display = tab === 'barcode' ? 'block' : 'none';
+    if (tab !== 'barcode') kameraKapat();
+    document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+        btn.classList.toggle('active', (tab === 'text' && i === 0) || (tab === 'photo' && i === 1));
+    });
+}
+
+function toggleManual() {
+    const fields = document.getElementById('manualFields');
+    fields.style.display = fields.style.display === 'none' ? 'block' : 'none';
+}
+
+function previewPhoto(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            const preview = document.getElementById('photoPreview');
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+document.getElementById('mealForm').addEventListener('submit', function(e) {
+    // Form gönderilmeden önce doğru description alanını ayarla
+    const form = e.target;
+    
+    // Önce mevcut food_description input'larını temizle
+    const existingInputs = form.querySelectorAll('input[name="food_description"]');
+    existingInputs.forEach(input => input.remove());
+    
+    // Aktif tab'a göre yeni hidden input ekle
+    const hiddenInput = document.createElement('input');
+    hiddenInput.type = 'hidden';
+    hiddenInput.name = 'food_description';
+    
+    if (currentTab === 'text') {
+        hiddenInput.value = document.getElementById('textDescription').value;
+    } else {
+        hiddenInput.value = document.getElementById('photoDescription').value;
+    }
+    
+    form.appendChild(hiddenInput);
+    
+    document.getElementById('loadingState').style.display = 'block';
+    document.getElementById('submitBtn').textContent = '⏳ Analiz ediliyor...';
+    document.getElementById('submitBtn').disabled = true;
+});
+
+// Drag & drop
+const drop = document.getElementById('photoDrop');
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('dragover'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
+drop.addEventListener('drop', e => {
+    e.preventDefault();
+    drop.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+        document.getElementById('photoInput').files = e.dataTransfer.files;
+        previewPhoto(document.getElementById('photoInput'));
+    }
+});
+
+// ── BARKOD FONKSİYONLARI ─────────────────────────────
+let barkodData = null;
+let kameraStream = null;
+let barkodTarayici = null;
+
+async function barkodAra() {
+    const barkod = document.getElementById('barkodInput').value.trim();
+    if (!barkod) { alert('Barkod girin!'); return; }
+
+    document.getElementById('barkodSonuc').style.display = 'none';
+    document.getElementById('barkodHata').style.display = 'none';
+
+    try {
+        // Doğrudan Open Food Facts API'sini tarayıcıdan çağır
+        const r = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barkod}.json`);
+        const offData = await r.json();
+        
+        let data;
+        if (offData.status === 1) {
+            const p = offData.product;
+            const n = p.nutriments || {};
+            data = {
+                bulundu: true,
+                urun_adi: p.product_name || p.product_name_en || p.product_name_tr || 'Bilinmeyen Ürün',
+                kalori_100g: Math.round(n['energy-kcal_100g'] || n['energy-kcal'] || 0),
+                protein_100g: parseFloat((n['proteins_100g'] || 0).toFixed(1)),
+                karb_100g: parseFloat((n['carbohydrates_100g'] || 0).toFixed(1)),
+                yag_100g: parseFloat((n['fat_100g'] || 0).toFixed(1)),
+                porsiyon: p.serving_size || '100g',
+            };
+        } else {
+            data = { bulundu: false };
+        }
+        
+        // Bulunamadıysa kullanıcıya ürün adı girme seçeneği sun
+        if (!data.bulundu) {
+            const urunAdi = prompt('Ürün veritabanında bulunamadı. Ürün adını girer misin? (Groq ile analiz edilecek)');
+            if (urunAdi) {
+                document.getElementById('textDescription').value = urunAdi;
+                switchTab('text');
+                document.getElementById('barkodHata').textContent = '⚠️ Ürün veritabanında yok, metin analizi ile devam edebilirsin.';
+                document.getElementById('barkodHata').style.display = 'block';
+                return;
+            }
+        }
+
+        if (data.bulundu) {
+            barkodData = data;
+            document.getElementById('barkodUrunAdi').textContent = data.urun_adi || 'Ürün';
+            document.getElementById('barkodDetay').textContent =
+                `100g: ${data.kalori_100g} kcal | P: ${data.protein_100g}g | K: ${data.karb_100g}g | Y: ${data.yag_100g}g`;
+            document.getElementById('barkodSonuc').style.display = 'block';
+            barkodKaloriHesapla();
+        } else if (data.groq_analiz) {
+            barkodData = {
+                urun_adi: 'Groq Tahmini',
+                kalori_100g: data.groq_analiz.toplam_kalori,
+ protein_100g: data.groq_analiz.protein_g,
+                karb_100g: data.groq_analiz.karbonhidrat_g,
+                yag_100g: data.groq_analiz.yag_g,
+            };
+            document.getElementById('barkodUrunAdi').textContent = '🤖 Groq Tahmini';
+            document.getElementById('barkodDetay').textContent =
+                `Kalori: ${barkodData.kalori_100g} kcal | P: ${barkodData.protein_100g}g | K: ${barkodData.karb_100g}g | Y: ${barkodData.yag_100g}g`;
+            document.getElementById('barkodSonuc').style.display = 'block';
+        } else {
+            document.getElementById('barkodHata').textContent = '❌ Ürün bulunamadı. Barkodu kontrol edin.';
+            document.getElementById('barkodHata').style.display = 'block';
+        }
+    } catch(e) {
+        document.getElementById('barkodHata').textContent = '❌ Hata: ' + e.message;
+        document.getElementById('barkodHata').style.display = 'block';
+    }
+}
+
+function barkodKaloriHesapla() {
+    if (!barkodData) return;
+    const miktar = parseInt(document.getElementById('barkodMiktar').value) || 100;
+    const oran = miktar / 100;
+    document.getElementById('barkodDetay').textContent =
+        `${miktar}g: ${Math.round(barkodData.kalori_100g * oran)} kcal | P: ${(barkodData.protein_100g * oran).toFixed(1)}g | K: ${(barkodData.karb_100g * oran).toFixed(1)}g | Y: ${(barkodData.yag_100g * oran).toFixed(1)}g`;
+}
+
+function barkodOgunEkle() {
+    if (!barkodData) return;
+    const miktar = parseInt(document.getElementById('barkodMiktar').value) || 100;
+    const oran = miktar / 100;
+
+    // food_description alanını doldur
+    const foodDescEl = document.getElementById('textDescription') || document.querySelector('[name="food_description"]');
+    if (foodDescEl) foodDescEl.value = barkodData.urun_adi + ' ' + miktar + 'g';
+
+    // Manuel kalori alanlarını doldur
+    const manuelKaloriEl = document.querySelector('[name="manuel_kalori"]');
+    const manuelProteinEl = document.querySelector('[name="manuel_protein"]');
+    const manuelKarbEl = document.querySelector('[name="manuel_karbonhidrat"]');
+    const manuelYagEl = document.querySelector('[name="manuel_yag"]');
+
+    if (manuelKaloriEl) manuelKaloriEl.value = Math.round(barkodData.kalori_100g * oran);
+    if (manuelProteinEl) manuelProteinEl.value = (barkodData.protein_100g * oran).toFixed(1);
+    if (manuelKarbEl) manuelKarbEl.value = (barkodData.karb_100g * oran).toFixed(1);
+    if (manuelYagEl) manuelYagEl.value = (barkodData.yag_100g * oran).toFixed(1);
+
+    // Manuel alanları görünür yap ve formu gönder
+    const manuelSection = document.getElementById('manualFields');
+    if (manuelSection) manuelSection.style.display = 'block';
+
+    document.querySelector('form').submit();
+}
+
+async function kameraAc() {
+    document.getElementById('kameraAlani').style.display = 'block';
+    try {
+        kameraStream = await navigator.mediaDevices.getUserMedia({video: {facingMode: 'environment'}});
+        document.getElementById('kameraVideo').srcObject = kameraStream;
+
+        // ZXing barkod okuyucu yükle
+        if (!window.ZXing) {
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js';
+            script.onload = baslatBarkodOkuyucu;
+            document.head.appendChild(script);
+        } else {
+            baslatBarkodOkuyucu();
+        }
+    } catch(e) {
+        alert('Kamera açılamadı: ' + e.message);
+    }
+}
+
+function baslatBarkodOkuyucu() {
+    const video = document.getElementById('kameraVideo');
+    const codeReader = new ZXing.BrowserMultiFormatReader();
+    barkodTarayici = codeReader;
+    codeReader.decodeFromVideoDevice(null, video, (result, err) => {
+        if (result) {
+            document.getElementById('barkodInput').value = result.getText();
+            kameraKapat();
+            barkodAra();
+        }
+    });
+}
+
+function kameraKapat() {
+    if (kameraStream) {
+        kameraStream.getTracks().forEach(t => t.stop());
+        kameraStream = null;
+    }
+    if (barkodTarayici) {
+        barkodTarayici.reset();
+        barkodTarayici = null;
+    }
+    document.getElementById('kameraAlani').style.display = 'none';
+}
+
+document.getElementById('barkodInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); barkodAra(); }
+});
+
+</script>
+{% endblock %}
+

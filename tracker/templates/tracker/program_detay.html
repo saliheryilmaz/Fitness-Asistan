@@ -1,0 +1,236 @@
+{% extends 'tracker/base.html' %}
+{% load dict_extras %}
+{% block title %}{{ program.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.exc-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.1rem 1.25rem;
+    margin-bottom: 0.75rem;
+}
+.exc-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+}
+.exc-name { font-weight: 700; font-size: 0.95rem; margin-bottom: 0.15rem; }
+.exc-sub { font-size: 0.75rem; color: var(--text-muted); }
+.exc-best { text-align: right; }
+.exc-best-kg { font-size: 1.2rem; font-weight: 800; color: var(--green); line-height: 1; }
+.exc-best-label { font-size: 0.68rem; color: var(--text-muted); }
+
+.chart-wrap {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 40px;
+    margin-bottom: 4px;
+}
+.chart-bar {
+    flex: 1;
+    border-radius: 3px 3px 0 0;
+    background: #2a3a2a;
+    min-height: 4px;
+    position: relative;
+    cursor: default;
+    transition: background 0.2s;
+}
+.chart-bar.latest { background: var(--green); }
+.chart-bar:not(.latest) { background: #2d4a2d; }
+.chart-bar:hover { opacity: 0.8; }
+.chart-bar::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: calc(100% + 5px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1a2a1a;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 0.68rem;
+    padding: 0.2rem 0.45rem;
+    border-radius: 6px;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 10;
+}
+.chart-bar:hover::after { opacity: 1; }
+
+.chart-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.62rem;
+    color: var(--text-muted);
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.2rem 0.55rem;
+    border-radius: 20px;
+    margin-right: 0.35rem;
+}
+.badge-green { background: rgba(74,222,128,0.1); color: var(--green); }
+.badge-amber { background: rgba(251,191,36,0.1); color: var(--amber); }
+.badge-blue  { background: rgba(96,165,250,0.1); color: var(--blue); }
+
+.section-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin: 1.5rem 0 0.75rem;
+    text-transform: uppercase;
+}
+
+.add-exc-form {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.1rem 1.25rem;
+    margin-bottom: 1.5rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+
+    <!-- Başlık -->
+    <div style="margin-bottom:1.5rem;">
+        <a href="{% url 'antrenman' %}" style="font-size:0.82rem;color:var(--text-muted);text-decoration:none;">← Antrenman</a>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:0.4rem;">
+            <div>
+                <h1 style="font-size:1.4rem;font-weight:800;margin-bottom:0.1rem;">{{ program.name }}</h1>
+                {% if program.description %}
+                <p style="font-size:0.82rem;color:var(--text-muted);">{{ program.description }}</p>
+                {% endif %}
+            </div>
+            <div style="display:flex;gap:0.5rem;">
+                <a href="{% url 'antrenman_baslat' program.pk %}"
+                    style="padding:0.55rem 1rem;background:var(--green);border-radius:10px;color:#000;font-weight:800;text-decoration:none;font-size:0.88rem;white-space:nowrap;">
+                    🏋️ Başlat
+                </a>
+                <a href="{% url 'program_sil' program.pk %}"
+                    onclick="return confirm('Programı silmek istediğine emin misin?')"
+                    style="padding:0.55rem 0.75rem;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--red);text-decoration:none;font-size:0.88rem;">
+                    Sil
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Egzersiz Ekle -->
+    <div class="add-exc-form">
+        <div style="font-weight:700;margin-bottom:1rem;font-size:0.9rem;">+ Egzersiz Ekle</div>
+        <form method="post" action="{% url 'egzersiz_ekle' program.pk %}">
+            {% csrf_token %}
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-bottom:0.6rem;">
+                <div style="grid-column:1/-1;">
+                    <input type="text" name="name" class="form-input" placeholder="Egzersiz adı (örn. Bench Press)" required>
+                </div>
+                <select name="category" class="form-input">
+                    <option value="gogus">Göğüs</option>
+                    <option value="sirt">Sırt</option>
+                    <option value="omuz">Omuz</option>
+                    <option value="bacak">Bacak</option>
+                    <option value="kol">Kol</option>
+                    <option value="karin">Karın</option>
+                    <option value="diger">Diğer</option>
+                </select>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;">
+                    <input type="number" name="target_sets" class="form-input" value="3" min="1" max="10" placeholder="Set">
+                    <input type="number" name="target_reps" class="form-input" value="10" min="1" max="100" placeholder="Tekrar">
+                </div>
+            </div>
+            <button type="submit"
+                style="width:100%;padding:0.65rem;background:var(--green);border:none;border-radius:10px;color:#000;font-weight:800;cursor:pointer;font-size:0.88rem;">
+                Ekle
+            </button>
+        </form>
+    </div>
+
+    <!-- Egzersizler -->
+    <div class="section-label">Egzersizler & Gelişim ({{ exercises.count }})</div>
+
+    {% for exercise in exercises %}
+    {% with stats=exercise_stats|get_item:exercise.pk %}
+    <div class="exc-card">
+        <div class="exc-header">
+            <div>
+                <div class="exc-name">{{ exercise.name }}</div>
+                <div class="exc-sub">{{ exercise.get_category_display }} · {{ exercise.target_sets }}×{{ exercise.target_reps }}</div>
+                <div style="margin-top:0.5rem;">
+                    {% if stats.session_count %}
+                    <span class="badge badge-blue">{{ stats.session_count }} seans</span>
+                    {% endif %}
+                    {% if stats.progress_kg > 0 %}
+                    <span class="badge badge-amber">+{{ stats.progress_kg }}kg ilerleme</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% if stats.best_kg > 0 %}
+            <div class="exc-best">
+                <div class="exc-best-kg">{{ stats.best_kg }}</div>
+                <div class="exc-best-label">kg max</div>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if stats.history|length > 1 %}
+        <div class="chart-wrap">
+            {% for h in stats.history %}
+            <div class="chart-bar {% if forloop.last %}latest{% endif %}"
+                 style="height:{{ h.bar_pct }}%"
+                 data-tip="{{ h.date }}: {{ h.max_kg }}kg"></div>
+            {% endfor %}
+        </div>
+        <div class="chart-labels">
+            <span>{{ stats.history.0.date }}</span>
+            <span style="color:var(--green);">{{ stats.history|last_item_date }}</span>
+        </div>
+        {% elif stats.history %}
+        <div style="font-size:0.75rem;color:var(--text-muted);">Daha fazla antrenman yaptıkça gelişim grafiği burada görünecek.</div>
+        {% else %}
+        <div style="font-size:0.75rem;color:var(--text-muted);">Henüz antrenman kaydı yok.</div>
+        {% endif %}
+    </div>
+    {% endwith %}
+    {% empty %}
+    <p style="color:var(--text-muted);text-align:center;padding:2rem 0;">Henüz egzersiz eklenmedi.</p>
+    {% endfor %}
+
+    <!-- Son Antrenman -->
+    {% if son_log %}
+    <div class="section-label">Son Antrenman — {{ son_log.date }}</div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.1rem 1.25rem;">
+        {% for item in son_log_data %}
+        <div style="margin-bottom:0.85rem;">
+            <div style="font-size:0.85rem;font-weight:700;margin-bottom:0.3rem;">{{ item.exercise.name }}</div>
+            {% for s in item.sets %}
+            <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.1rem;">
+                Set {{ s.set_number }}:
+                <span style="color:var(--text);">{{ s.weight_kg }}kg × {{ s.reps }} tekrar</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+        {% if son_log.notes %}
+        <div style="font-size:0.78rem;color:var(--text-muted);border-top:1px solid var(--border);padding-top:0.65rem;margin-top:0.25rem;">
+            📝 {{ son_log.notes }}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

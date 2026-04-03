@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kayıt Ol – KaloriAI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0d0f0e; --surface: #141816; --surface2: #1c201e;
+            --border: #252b27; --accent: #a8e063; --accent2: #5de0a0;
+            --text: #e8ede9; --text-muted: #7a8c7e; --danger: #ff6b6b;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+        .auth-wrap { width: 100%; max-width: 460px; }
+        .brand { text-align: center; margin-bottom: 2rem; }
+        .brand-logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 2.2rem; letter-spacing: -1px; }
+        .brand-logo .accent { color: var(--accent); }
+        .brand-logo .muted { color: var(--text-muted); }
+        .auth-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 2rem; }
+        .auth-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.3rem; margin-bottom: 1.5rem; }
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; font-size: 0.78rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        input, select { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 0.75rem 1rem; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 0.95rem; transition: border-color 0.2s; }
+        input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(168,224,99,0.1); }
+        select option { background: var(--surface2); }
+        .goal-hint { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.3rem; }
+        .btn-submit { width: 100%; padding: 0.875rem; background: var(--accent); color: #0d0f0e; border: none; border-radius: 12px; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem; cursor: pointer; margin-top: 0.5rem; transition: all 0.2s; }
+        .btn-submit:hover { background: #bef07a; transform: translateY(-1px); }
+        .auth-footer { text-align: center; margin-top: 1.5rem; color: var(--text-muted); font-size: 0.875rem; }
+        .auth-footer a { color: var(--accent); text-decoration: none; font-weight: 500; }
+        .messages { margin-bottom: 1rem; }
+        .message { padding: 0.75rem 1rem; border-radius: 10px; font-size: 0.875rem; margin-bottom: 0.5rem; }
+        .message.error { background: rgba(255,107,107,0.12); border: 1px solid rgba(255,107,107,0.3); color: var(--danger); }
+        body::before { content: ''; position: fixed; bottom: -20%; left: -10%; width: 500px; height: 500px; border-radius: 50%; background: radial-gradient(circle, rgba(93,224,160,0.06) 0%, transparent 70%); pointer-events: none; }
+    </style>
+</head>
+<body>
+<div class="auth-wrap">
+    <div class="brand">
+        <div class="brand-logo"><span class="accent">Kalori</span><span class="muted">AI</span></div>
+    </div>
+
+    <div class="auth-card">
+        <h2 class="auth-title">Hesap oluştur</h2>
+
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="message {{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label>Kullanıcı Adı</label>
+                <input type="text" name="username" placeholder="kullaniciadiniz" required autofocus>
+            </div>
+            <div class="form-group">
+                <label>E-posta (isteğe bağlı)</label>
+                <input type="email" name="email" placeholder="ornek@mail.com">
+            </div>
+            <div class="form-group">
+                <label>Şifre</label>
+                <input type="password" name="password" placeholder="En az 8 karakter" required>
+            </div>
+            <div class="form-group">
+                <label>Şifre Tekrar</label>
+                <input type="password" name="password2" placeholder="Şifreyi tekrarla" required>
+            </div>
+            <div class="form-group">
+                <label>Günlük Kalori Hedefiniz (kcal)</label>
+                <input type="number" name="daily_goal" value="2000" min="500" max="5000">
+                <p class="goal-hint">Ortalama yetişkin: Kadın ~1800 kcal, Erkek ~2200 kcal</p>
+            </div>
+            <button type="submit" class="btn-submit">Hesap Oluştur →</button>
+        </form>
+    </div>
+
+    <div class="auth-footer">
+        Zaten hesabın var mı? <a href="{% url 'login' %}">Giriş yap</a>
+    </div>
+</div>
+</body>
+</html>

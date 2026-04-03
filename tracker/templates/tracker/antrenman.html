@@ -1,0 +1,223 @@
+{% extends 'tracker/base.html' %}
+{% load dict_extras %}
+{% block title %}Antrenman{% endblock %}
+
+{% block extra_css %}
+<style>
+.week-strip {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    margin-bottom: 1.75rem;
+}
+.week-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 0.55rem 0.2rem;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    min-height: 64px;
+    justify-content: flex-start;
+    padding-top: 0.6rem;
+}
+.week-cell.today {
+    border-color: var(--green);
+    color: var(--green);
+    background: rgba(74,222,128,0.06);
+}
+.week-cell.done .dot { background: var(--green); }
+.week-cell.rest .dot { background: var(--text-muted); opacity: 0.4; }
+.dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--border);
+}
+
+.prog-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.1rem 1.25rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    transition: border-color 0.15s;
+}
+.prog-card:hover { border-color: #3a4a3a; }
+
+.prog-info { flex: 1; min-width: 0; }
+.prog-name { font-weight: 700; font-size: 1rem; margin-bottom: 0.2rem; }
+.prog-meta { font-size: 0.78rem; color: var(--text-muted); }
+
+.prog-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
+.btn-start {
+    padding: 0.5rem 1rem;
+    background: var(--green);
+    border: none; border-radius: 10px;
+    color: #000; font-weight: 800;
+    font-size: 0.85rem; cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.btn-ghost {
+    padding: 0.5rem 0.75rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.section-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+}
+
+.hafta-ozet {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.hafta-sayi {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--green);
+    line-height: 1;
+}
+.hafta-sayi span { font-size: 1rem; color: var(--text-muted); font-weight: 400; }
+
+.modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.8);
+    z-index: 1000;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 1rem;
+}
+.modal-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px 20px 16px 16px;
+    padding: 1.5rem;
+    width: 100%;
+    max-width: 480px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+        <h1 style="font-size:1.4rem;font-weight:800;">Antrenman</h1>
+        <button onclick="document.getElementById('modalEkle').style.display='flex'"
+            class="btn-start">+ Program</button>
+    </div>
+
+    <!-- Haftalık özet -->
+    <div class="hafta-ozet">
+        <div>
+            <div class="hafta-sayi">{{ bu_hafta_gun_sayisi }} <span>/ 5 gün</span></div>
+            <div style="font-size:0.8rem;color:var(--text-muted);margin-top:0.2rem;">Bu hafta antrenman</div>
+        </div>
+        <div style="text-align:right;">
+            <div style="font-size:0.82rem;color:var(--text-muted);">2 dinlenme günü</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.15rem;">Pzt–Paz</div>
+        </div>
+    </div>
+
+    <!-- Haftalık şerit -->
+    <div class="week-strip">
+        {% for gun in hafta_gunleri %}
+        <div class="week-cell {% if gun.bugun %}today{% endif %} {% if gun.yapildi %}done{% elif gun.gelecek %}rest{% endif %}">
+            <span>{{ gun.kisa }}</span>
+            <div class="dot"></div>
+            {% if gun.program_adi %}
+            <span style="font-size:0.55rem;color:var(--green);text-align:center;line-height:1.2;margin-top:1px;word-break:break-word;">{{ gun.program_adi|truncatechars:8 }}</span>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Programlar -->
+    <div class="section-label">Programlarım ({{ programs.count }})</div>
+
+    {% for program in programs %}
+    {% with meta=program_meta|get_item:program.pk %}
+    <div class="prog-card">
+        <div class="prog-info">
+            <div class="prog-name">{{ program.name }}</div>
+            <div class="prog-meta">
+                {{ program.exercises.count }} egzersiz
+                {% if meta.son_tarih %}· Son: {{ meta.son_tarih }}{% endif %}
+                {% if meta.toplam_seans %}· {{ meta.toplam_seans }} seans{% endif %}
+            </div>
+            {% if program.description %}
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.2rem;">{{ program.description }}</div>
+            {% endif %}
+        </div>
+        <div class="prog-actions">
+            <a href="{% url 'program_detay' program.pk %}" class="btn-ghost">Detay</a>
+            <a href="{% url 'antrenman_baslat' program.pk %}" class="btn-start">Başlat</a>
+        </div>
+    </div>
+    {% endwith %}
+    {% empty %}
+    <div style="text-align:center;padding:3rem 1rem;color:var(--text-muted);">
+        <div style="font-size:2.5rem;margin-bottom:0.75rem;">🏋️</div>
+        <p style="margin-bottom:1rem;">Henüz program yok.</p>
+        <button onclick="document.getElementById('modalEkle').style.display='flex'" class="btn-start">
+            İlk Programı Oluştur
+        </button>
+    </div>
+    {% endfor %}
+
+</div>
+
+<!-- Modal -->
+<div id="modalEkle" class="modal-overlay" onclick="if(event.target===this)this.style.display='none'">
+    <div class="modal-box">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
+            <h3 style="font-weight:800;font-size:1.1rem;">Yeni Program</h3>
+            <button onclick="document.getElementById('modalEkle').style.display='none'"
+                style="background:none;border:none;color:var(--text-muted);font-size:1.25rem;cursor:pointer;">✕</button>
+        </div>
+        <form method="post" action="{% url 'program_ekle' %}">
+            {% csrf_token %}
+            <div class="form-group">
+                <label class="form-label">Program Adı</label>
+                <input type="text" name="name" class="form-input" placeholder="örn. Push A, Bacak, Full Body" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Açıklama (isteğe bağlı)</label>
+                <input type="text" name="description" class="form-input" placeholder="örn. Göğüs + Omuz + Triceps">
+            </div>
+            <div style="display:flex;gap:0.75rem;margin-top:1.25rem;">
+                <button type="button" onclick="document.getElementById('modalEkle').style.display='none'"
+                    class="btn-ghost" style="flex:1;padding:0.75rem;text-align:center;">İptal</button>
+                <button type="submit" class="btn-start" style="flex:1;padding:0.75rem;text-align:center;">Oluştur</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

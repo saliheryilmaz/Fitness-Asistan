@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giriş – KaloriAI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0d0f0e; --surface: #141816; --surface2: #1c201e;
+            --border: #252b27; --accent: #a8e063; --accent2: #5de0a0;
+            --text: #e8ede9; --text-muted: #7a8c7e; --danger: #ff6b6b;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+
+        .auth-wrap { width: 100%; max-width: 420px; }
+
+        .brand {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .brand-logo {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 2.5rem;
+            letter-spacing: -1px;
+        }
+
+        .brand-logo .accent { color: var(--accent); }
+        .brand-logo .muted { color: var(--text-muted); }
+        .brand-tagline { color: var(--text-muted); margin-top: 0.5rem; font-size: 0.9rem; }
+
+        .auth-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2rem;
+        }
+
+        .auth-title {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 1.3rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group { margin-bottom: 1rem; }
+
+        label {
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 0.4rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input {
+            width: 100%;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.95rem;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(168,224,99,0.1);
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 0.875rem;
+            background: var(--accent);
+            color: #0d0f0e;
+            border: none;
+            border-radius: 12px;
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .btn-submit:hover { background: #bef07a; transform: translateY(-1px); }
+
+        .auth-footer {
+            text-align: center;
+            margin-top: 1.5rem;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        .auth-footer a { color: var(--accent); text-decoration: none; font-weight: 500; }
+        .auth-footer a:hover { text-decoration: underline; }
+
+        .messages { margin-bottom: 1rem; }
+        .message {
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+        .message.error { background: rgba(255,107,107,0.12); border: 1px solid rgba(255,107,107,0.3); color: var(--danger); }
+
+        /* Decorative BG */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -20%;
+            right: -10%;
+            width: 500px;
+            height: 500px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(168,224,99,0.06) 0%, transparent 70%);
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+<div class="auth-wrap">
+    <div class="brand">
+        <div class="brand-logo"><span class="accent">Kalori</span><span class="muted">AI</span></div>
+        <p class="brand-tagline">Yapay zeka destekli kalori takibi</p>
+    </div>
+
+    <div class="auth-card">
+        <h2 class="auth-title">Hesabına giriş yap</h2>
+
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="message {{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label>Kullanıcı Adı</label>
+                <input type="text" name="username" placeholder="kullaniciadiniz" required autofocus>
+            </div>
+            <div class="form-group">
+                <label>Şifre</label>
+                <input type="password" name="password" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="btn-submit">Giriş Yap →</button>
+        </form>
+    </div>
+
+    <div class="auth-footer">
+        Hesabın yok mu? <a href="{% url 'register' %}">Kayıt ol</a>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,76 @@
+{% extends 'tracker/base.html' %}
+{% block title %}Profil — Kalori Takip{% endblock %}
+
+{% block extra_css %}
+<style>
+.profil-wrap { max-width: 500px; margin: 0 auto; }
+.profil-wrap h1 { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 0.3rem; }
+.profil-avatar {
+    width: 72px;
+    height: 72px;
+    background: var(--green-glow);
+    border: 2px solid rgba(74,222,128,0.3);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+    margin-bottom: 1.5rem;
+}
+.bmi-badge {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-top: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.bmi-badge .bmi-val { font-family: var(--font-display); font-size: 1.5rem; font-weight: 800; color: var(--green); }
+.errorlist { list-style: none; color: var(--red); font-size: 0.82rem; margin-top: 0.3rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profil-wrap fade-in">
+    <div class="profil-avatar">👤</div>
+    <h1>{{ user.first_name|default:user.username }}</h1>
+    <p style="color:var(--text-muted); font-size:0.875rem; margin-bottom:2rem;">@{{ user.username }} · {{ user.email }}</p>
+
+    <div class="card">
+        <h3 style="font-size:1rem; font-weight:700; margin-bottom:1.5rem;">Profil Ayarları</h3>
+        <form method="post">
+            {% csrf_token %}
+            {% for field in form %}
+            <div class="form-group">
+                <label class="form-label">{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+            </div>
+            {% endfor %}
+
+            {% if profile.height_cm and profile.weight_kg %}
+            <div class="bmi-badge">
+                <div>
+                    <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">Vücut Kitle İndeksi</div>
+                    <div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.2rem;">{{ profile.height_cm }} cm · {{ profile.weight_kg }} kg</div>
+                </div>
+                <div class="bmi-val">
+                    {% widthratio profile.weight_kg 1 1 as w %}
+                    {% widthratio profile.height_cm 100 1 as h %}
+                    — 
+                </div>
+            </div>
+            {% endif %}
+
+            <button type="submit" class="btn btn-primary" style="width:100%; margin-top:1rem;">Kaydet ✓</button>
+        </form>
+    </div>
+
+    <div class="card" style="margin-top:1rem;">
+        <h3 style="font-size:0.9rem; font-weight:700; margin-bottom:0.75rem; color:var(--text-muted);">Hesap</h3>
+        <a href="{% url 'cikis' %}" class="btn btn-ghost" style="width:100%;">Çıkış Yap</a>
+    </div>
+</div>
+{% endblock %}

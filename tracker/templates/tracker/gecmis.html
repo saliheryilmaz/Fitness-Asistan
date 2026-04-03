@@ -1,0 +1,288 @@
+{% extends 'tracker/base.html' %}
+{% block title %}Geçmiş — Kalori Takip{% endblock %}
+
+{% block extra_css %}
+<style>
+.page-header { margin-bottom: 1.5rem; }
+.page-header h1 { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.5px; }
+
+/* STATS */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+.stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1rem 1.25rem;
+    position: relative;
+    overflow: hidden;
+}
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--accent-color, var(--green));
+    border-radius: 14px 14px 0 0;
+}
+.stat-card .label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.3rem; }
+.stat-card .value { font-size: 1.6rem; font-weight: 800; line-height: 1; }
+.stat-card .sub { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.3rem; }
+
+/* MAKRO ÖZET */
+.macro-summary {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+}
+.macro-summary .title { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem; }
+.macro-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
+.macro-row:last-child { margin-bottom: 0; }
+.macro-label { font-size: 0.8rem; width: 70px; color: var(--text-muted); }
+.macro-bar-wrap { flex: 1; background: var(--surface2); border-radius: 99px; height: 8px; overflow: hidden; }
+.macro-bar { height: 100%; border-radius: 99px; transition: width 0.8s cubic-bezier(.4,0,.2,1); }
+.macro-val { font-size: 0.8rem; font-weight: 600; width: 45px; text-align: right; }
+
+/* FILTER */
+.filter-bar {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+.filter-chip {
+    padding: 0.4rem 0.85rem;
+    border-radius: 99px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.15s;
+}
+.filter-chip.active, .filter-chip:hover {
+    background: var(--green-glow);
+    border-color: var(--green);
+    color: var(--green);
+}
+.filter-bar input[type="date"] {
+    padding: 0.4rem 0.75rem;
+    border-radius: 99px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.8rem;
+}
+
+/* GÜN GRUBU */
+.day-group { margin-bottom: 1.5rem; }
+.day-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.6rem;
+    padding: 0.6rem 0.75rem;
+    background: var(--surface2);
+    border-radius: 10px;
+    border-left: 3px solid var(--green);
+}
+.day-date { font-weight: 700; font-size: 0.9rem; }
+.day-meta { display: flex; align-items: center; gap: 0.75rem; font-size: 0.8rem; }
+.day-cal { color: var(--green); font-weight: 700; }
+.day-progress-wrap { width: 60px; background: var(--surface); border-radius: 99px; height: 6px; overflow: hidden; }
+.day-progress { height: 100%; border-radius: 99px; }
+
+/* ÖĞÜN SATIRI */
+.meal-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 0.4rem;
+    transition: border-color 0.2s, transform 0.15s;
+    position: relative;
+}
+.meal-row:hover { border-color: rgba(74,222,128,0.25); transform: translateX(2px); }
+.meal-photo { width: 48px; height: 48px; border-radius: 10px; object-fit: cover; flex-shrink: 0; }
+.meal-type-badge {
+    font-size: 0.68rem;
+    background: var(--surface2);
+    border-radius: 6px;
+    padding: 0.2rem 0.45rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+.meal-desc { flex: 1; min-width: 0; }
+.meal-desc .food { font-size: 0.875rem; font-weight: 500; white-space: normal; word-break: break-word; line-height: 1.4; }
+.meal-desc .macros {
+    display: flex;
+    gap: 0.6rem;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 0.3rem;
+    flex-wrap: wrap;
+}
+.macro-pill { display: flex; align-items: center; gap: 0.2rem; }
+.meal-right { display: flex; flex-direction: column; align-items: flex-end; gap: 0.4rem; flex-shrink: 0; }
+.meal-cal-badge {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--green);
+    background: var(--green-glow);
+    padding: 0.2rem 0.55rem;
+    border-radius: 8px;
+    white-space: nowrap;
+}
+.meal-delete {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.15rem 0.4rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-decoration: none;
+}
+.meal-delete:hover { border-color: var(--red); color: var(--red); background: rgba(248,113,113,0.08); }
+
+.empty-state { text-align: center; padding: 4rem 2rem; color: var(--text-muted); }
+.empty-state .icon { font-size: 3rem; margin-bottom: 1rem; }
+
+@media (max-width: 640px) {
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="page-header">
+        <h1>Öğün Geçmişi 📅</h1>
+        <p style="color:var(--text-muted); font-size:0.875rem; margin-top:0.3rem;">Son 7 günlük beslenme istatistiklerin</p>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-grid">
+        <div class="stat-card" style="--accent-color: var(--green);">
+            <div class="label">Günlük Ort. Kalori</div>
+            <div class="value text-green">{{ avg_daily }}</div>
+            <div class="sub">kcal / gün</div>
+        </div>
+        <div class="stat-card" style="--accent-color: var(--amber);">
+            <div class="label">Toplam Öğün</div>
+            <div class="value" style="color:var(--amber);">{{ meal_count }}</div>
+            <div class="sub">son 7 günde</div>
+        </div>
+        <div class="stat-card" style="--accent-color: #60a5fa;">
+            <div class="label">Toplam Protein</div>
+            <div class="value" style="color:#60a5fa;">{{ stats.total_protein|floatformat:0|default:"0" }}g</div>
+            <div class="sub">son 7 günde</div>
+        </div>
+        <div class="stat-card" style="--accent-color: var(--pink);">
+            <div class="label">Toplam Yağ</div>
+            <div class="value" style="color:var(--pink);">{{ stats.total_fat|floatformat:0|default:"0" }}g</div>
+            <div class="sub">son 7 günde</div>
+        </div>
+    </div>
+
+    <!-- MAKRO ÖZET -->
+    {% if stats.total %}
+    <div class="macro-summary">
+        <div class="title">7 Günlük Makro Dağılımı</div>
+        {% with total_macro=stats.total_protein|add:stats.total_carbs|add:stats.total_fat %}
+        <div class="macro-row">
+            <span class="macro-label">💪 Protein</span>
+            <div class="macro-bar-wrap">
+                <div class="macro-bar" style="width:{% widthratio stats.total_protein|default:0 stats.total_macro|default:1 100 %}%; background:#60a5fa;"></div>
+            </div>
+            <span class="macro-val" style="color:#60a5fa;">{{ stats.total_protein|floatformat:0|default:"0" }}g</span>
+        </div>
+        <div class="macro-row">
+            <span class="macro-label">🌾 Karb</span>
+            <div class="macro-bar-wrap">
+                <div class="macro-bar" style="width:{% widthratio stats.total_carbs|default:0 stats.total_macro|default:1 100 %}%; background:var(--amber);"></div>
+            </div>
+            <span class="macro-val" style="color:var(--amber);">{{ stats.total_carbs|floatformat:0|default:"0" }}g</span>
+        </div>
+        <div class="macro-row">
+            <span class="macro-label">🥑 Yağ</span>
+            <div class="macro-bar-wrap">
+                <div class="macro-bar" style="width:{% widthratio stats.total_fat|default:0 stats.total_macro|default:1 100 %}%; background:var(--pink);"></div>
+            </div>
+            <span class="macro-val" style="color:var(--pink);">{{ stats.total_fat|floatformat:0|default:"0" }}g</span>
+        </div>
+        {% endwith %}
+    </div>
+    {% endif %}
+
+    <!-- FILTER -->
+    <div class="filter-bar">
+        <a href="{% url 'gecmis' %}" class="filter-chip {% if not filter_date %}active{% endif %}">Tümü</a>
+        <form method="get" style="display:flex;gap:0.5rem;align-items:center;">
+            <input type="date" name="tarih" value="{{ filter_date }}" onchange="this.form.submit()">
+            {% if filter_date %}
+            <a href="{% url 'gecmis' %}" class="filter-chip">✕ Temizle</a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- GROUPED MEALS -->
+    {% if grouped_meals %}
+        {% for day_date, day_data in grouped_meals %}
+        <div class="day-group">
+            <div class="day-header">
+                <div class="day-date">{{ day_date|date:"d F Y, l" }}</div>
+                <div class="day-meta">
+                    <span class="day-cal">{{ day_data.total_cal }} kcal</span>
+                    <span style="color:var(--text-muted);">{{ day_data.meals|length }} öğün</span>
+                </div>
+            </div>
+            {% for meal in day_data.meals %}
+            <div class="meal-row">
+                {% if meal.photo %}
+                <img src="{{ meal.photo.url }}" class="meal-photo" alt="">
+                {% endif %}
+                <span class="meal-type-badge">{{ meal.get_meal_type_display }}</span>
+                <div class="meal-desc">
+                    <div class="food">{{ meal.food_description }}</div>
+                    <div class="macros">
+                        <span class="macro-pill" style="color:#60a5fa;">💪 {{ meal.protein_g|floatformat:1 }}g</span>
+                        <span class="macro-pill" style="color:var(--amber);">🌾 {{ meal.carbs_g|floatformat:1 }}g</span>
+                        <span class="macro-pill" style="color:var(--pink);">🥑 {{ meal.fat_g|floatformat:1 }}g</span>
+                    </div>
+                    {% if meal.ai_analysis %}
+                    <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.3rem;font-style:italic;">{{ meal.ai_analysis|truncatechars:80 }}</div>
+                    {% endif %}
+                </div>
+                <div class="meal-right">
+                    <span class="meal-cal-badge">{{ meal.total_calories }} kcal</span>
+                    <a href="{% url 'ogun_sil' meal.pk %}" class="meal-delete"
+                       onclick="return confirm('Bu öğünü silmek istediğine emin misin?')">🗑️ Sil</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <div class="icon">📭</div>
+            <p>Henüz öğün kaydı yok.</p>
+            <a href="{% url 'ogun_ekle' %}" style="color:var(--green); display:block; margin-top:0.75rem;">+ İlk öğünü ekle</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

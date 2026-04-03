@@ -1,0 +1,244 @@
+{% extends 'tracker/base.html' %}
+{% block title %}{{ program.name }} — Antrenman{% endblock %}
+
+{% block extra_css %}
+<style>
+.exc-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.1rem 1.25rem;
+    margin-bottom: 1rem;
+}
+.exc-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.15rem;
+}
+.exc-sub { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.6rem; }
+
+.overload-tip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.25rem 0.65rem;
+    border-radius: 20px;
+    margin-bottom: 0.75rem;
+}
+.tip-kg   { background: rgba(74,222,128,0.1); color: var(--green); border: 1px solid rgba(74,222,128,0.25); }
+.tip-reps { background: rgba(251,191,36,0.1); color: var(--amber); border: 1px solid rgba(251,191,36,0.2); }
+
+.set-grid-header {
+    display: grid;
+    grid-template-columns: 32px 1fr 1fr 36px;
+    gap: 0.5rem;
+    margin-bottom: 0.35rem;
+}
+.set-grid-header span {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.set-row {
+    display: grid;
+    grid-template-columns: 32px 1fr 1fr 36px;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.45rem;
+}
+.set-num {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-weight: 700;
+    text-align: center;
+}
+.set-input {
+    padding: 0.6rem 0.4rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    color: var(--text);
+    font-size: 0.9rem;
+    text-align: center;
+    width: 100%;
+    transition: border-color 0.15s;
+}
+.set-input:focus { border-color: var(--green); outline: none; background: #0f1a0f; }
+.set-input.suggested { border-color: rgba(74,222,128,0.35); }
+
+.set-check {
+    width: 34px; height: 34px;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+    user-select: none;
+}
+.set-check.done { background: rgba(74,222,128,0.15); border-color: var(--green); color: var(--green); }
+
+.add-set-btn {
+    width: 100%;
+    padding: 0.45rem;
+    background: none;
+    border: 1px dashed var(--border);
+    border-radius: 9px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+    transition: all 0.15s;
+}
+.add-set-btn:hover { border-color: var(--green); color: var(--green); }
+
+.timer-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 0.4rem 0.9rem;
+    font-size: 0.85rem;
+    margin-bottom: 1.25rem;
+}
+.timer-val { font-weight: 800; color: var(--green); font-variant-numeric: tabular-nums; }
+
+.save-bar {
+    position: sticky;
+    bottom: 0;
+    background: linear-gradient(to top, var(--bg) 80%, transparent);
+    padding: 1rem 0 0.5rem;
+    margin-top: 1.5rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+
+    <div style="margin-bottom:1.25rem;">
+        <a href="{% url 'program_detay' program.pk %}" style="font-size:0.82rem;color:var(--text-muted);text-decoration:none;">← {{ program.name }}</a>
+        <h1 style="font-size:1.4rem;font-weight:800;margin-top:0.35rem;">{{ program.name }}</h1>
+        {% if program.description %}
+        <p style="font-size:0.82rem;color:var(--text-muted);">{{ program.description }}</p>
+        {% endif %}
+    </div>
+
+    <form method="post" action="{% url 'antrenman_kaydet' program.pk %}" id="workoutForm">
+        {% csrf_token %}
+
+        {% for exercise in exercises %}
+        <div class="exc-card">
+            <div class="exc-title">{{ exercise.name }}</div>
+            <div class="exc-sub">{{ exercise.get_category_display }} · Hedef: {{ exercise.target_sets }}×{{ exercise.target_reps }}</div>
+
+            <div id="oneri_{{ exercise.pk }}"></div>
+
+            <div class="set-grid-header">
+                <span>#</span><span>KG</span><span>Tekrar</span><span>✓</span>
+            </div>
+
+            <div id="sets_{{ exercise.pk }}">
+                {% for i in "123456789"|make_list %}{% if forloop.counter <= exercise.target_sets %}
+                <div class="set-row">
+                    <div class="set-num">{{ forloop.counter }}</div>
+                    <input type="number" name="kg_{{ exercise.pk }}_{{ forloop.counter }}"
+                           class="set-input" placeholder="—" step="0.5" min="0">
+                    <input type="number" name="reps_{{ exercise.pk }}_{{ forloop.counter }}"
+                           class="set-input" placeholder="—" min="0">
+                    <div class="set-check" onclick="toggleCheck(this)">○</div>
+                </div>
+                {% endif %}{% endfor %}
+            </div>
+
+            <button type="button" class="add-set-btn"
+                onclick="addSet({{ exercise.pk }}, {{ exercise.target_sets }})">+ Set Ekle</button>
+        </div>
+        {% endfor %}
+
+        <div class="form-group">
+            <label class="form-label">Not</label>
+            <textarea name="notes" class="form-input" rows="2" placeholder="Bugünkü antrenman hakkında..."></textarea>
+        </div>
+
+        <div class="save-bar">
+            <button type="submit"
+                style="width:100%;padding:1rem;background:var(--green);border:none;border-radius:13px;color:#000;font-weight:800;font-size:1rem;cursor:pointer;">
+                💾 Antrenmanı Kaydet
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const oncekiSetler = {{ onceki_setler|safe }};
+const oneri = {{ oneri|safe }};
+const setCounters = {};
+
+document.addEventListener('DOMContentLoaded', () => {
+    Object.keys(oncekiSetler).forEach(excId => {
+        const sets = oncekiSetler[excId];
+        const o = oneri[excId];  // oneri key'leri de string olarak gelir
+
+        // Öneri badge
+        const oneriDiv = document.getElementById(`oneri_${excId}`);
+        if (oneriDiv && o) {
+            if (o.tip === 'kg') {
+                oneriDiv.innerHTML = `<div class="overload-tip tip-kg">🚀 ${o.mesaj} &nbsp;${o.onceki_kg}→${o.onerilen_kg}kg</div>`;
+            } else {
+                oneriDiv.innerHTML = `<div class="overload-tip tip-reps">🎯 ${o.mesaj}</div>`;
+            }
+        }
+
+        sets.forEach((s, i) => {
+            const kgInput  = document.querySelector(`[name="kg_${excId}_${i+1}"]`);
+            const repInput = document.querySelector(`[name="reps_${excId}_${i+1}"]`);
+            if (kgInput) {
+                const sugKg = (o && o.tip === 'kg') ? o.onerilen_kg : s.kg;
+                kgInput.placeholder = sugKg > 0 ? sugKg : '—';
+                if (o && o.tip === 'kg') kgInput.classList.add('suggested');
+            }
+            if (repInput && s.reps > 0) repInput.placeholder = s.reps;
+        });
+    });
+
+    document.querySelectorAll('[id^="sets_"]').forEach(el => {
+        const excId = el.id.replace('sets_', '');
+        setCounters[excId] = el.querySelectorAll('.set-row').length;
+    });
+});
+
+function toggleCheck(el) {
+    el.classList.toggle('done');
+    el.textContent = el.classList.contains('done') ? '✓' : '○';
+    el.closest('.set-row').style.opacity = el.classList.contains('done') ? '0.45' : '1';
+}
+
+function addSet(excId, base) {
+    const container = document.getElementById(`sets_${excId}`);
+    setCounters[excId] = (setCounters[excId] || base) + 1;
+    const n = setCounters[excId];
+    const row = document.createElement('div');
+    row.className = 'set-row';
+    row.innerHTML = `
+        <div class="set-num">${n}</div>
+        <input type="number" name="kg_${excId}_${n}" class="set-input" placeholder="—" step="0.5" min="0">
+        <input type="number" name="reps_${excId}_${n}" class="set-input" placeholder="—" min="0">
+        <div class="set-check" onclick="toggleCheck(this)">○</div>
+    `;
+    container.appendChild(row);
+}
+
+// Sayaç kaldırıldı
+
+</script>
+{% endblock %}

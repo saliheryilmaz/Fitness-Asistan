@@ -1,0 +1,99 @@
+{% extends 'tracker/base.html' %}
+{% block title %}Kilo Ekle — Kalori Takip{% endblock %}
+
+{% block extra_css %}
+<style>
+.add-wrap {
+    max-width: 500px;
+    margin: 0 auto;
+}
+.add-header { margin-bottom: 1.5rem; }
+.add-header h1 { 
+    font-size: 1.5rem; 
+    font-weight: 800; 
+    letter-spacing: -0.5px; 
+}
+.add-header p { 
+    color: var(--text-muted); 
+    font-size: 0.875rem; 
+    margin-top: 0.5rem; 
+    line-height: 1.5;
+}
+
+@media (min-width: 640px) {
+    .add-header h1 { font-size: 1.75rem; }
+    .add-header { margin-bottom: 2rem; }
+}
+
+.weight-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(96,165,250,0.08);
+    border: 1px solid rgba(96,165,250,0.2);
+    border-radius: 100px;
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
+    color: var(--blue);
+    margin-bottom: 1.25rem;
+    font-weight: 600;
+}
+
+.form-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}
+
+@media (min-width: 640px) {
+    .form-actions {
+        flex-direction: row;
+    }
+    .form-actions .btn-primary {
+        flex: 1;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="add-wrap fade-in">
+    <div class="add-header">
+        <h1>Kilo Ekle ⚖️</h1>
+        <p>Kilonu kaydet ve ilerlemeyi takip et</p>
+    </div>
+
+    <div class="weight-badge">
+        📊 Günlük kilo takibi ile hedefine ulaş
+    </div>
+
+    <div class="card">
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label class="form-label">Kilo (kg)</label>
+                {{ form.weight_kg }}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Tarih</label>
+                {{ form.date }}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Not (İsteğe Bağlı)</label>
+                {{ form.note }}
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    ⚖️ Kaydet
+                </button>
+                <a href="{% url 'dashboard' %}" class="btn btn-ghost">İptal</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
