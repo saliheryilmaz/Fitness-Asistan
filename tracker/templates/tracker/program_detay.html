@@ -99,6 +99,46 @@
     padding: 1.1rem 1.25rem;
     margin-bottom: 1.5rem;
 }
+
+/* Haftalık karşılaştırma */
+.wc-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 0.6rem;
+}
+.wc-week-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.65rem;
+}
+.wc-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 0.5rem 1rem;
+    align-items: center;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.wc-row:last-child { border-bottom: none; }
+.wc-name { font-size: 0.83rem; font-weight: 600; }
+.wc-stat { text-align: right; }
+.wc-val { font-size: 0.88rem; font-weight: 800; }
+.wc-lbl { font-size: 0.62rem; color: var(--text-muted); margin-top: 1px; }
+.wc-delta {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    white-space: nowrap;
+    min-width: 60px;
+    text-align: right;
+}
+.wc-delta.pos { color: var(--green); }
+.wc-delta.neg { color: var(--text-muted); }
 </style>
 {% endblock %}
 
@@ -118,7 +158,7 @@
             <div style="display:flex;gap:0.5rem;">
                 <a href="{% url 'antrenman_baslat' program.pk %}"
                     style="padding:0.55rem 1rem;background:var(--green);border-radius:10px;color:#000;font-weight:800;text-decoration:none;font-size:0.88rem;white-space:nowrap;">
-                    🏋️ Başlat
+                     Başlat
                 </a>
                 <a href="{% url 'program_sil' program.pk %}"
                     onclick="return confirm('Programı silmek istediğine emin misin?')"
@@ -178,12 +218,18 @@
                     {% endif %}
                 </div>
             </div>
-            {% if stats.best_kg > 0 %}
-            <div class="exc-best">
-                <div class="exc-best-kg">{{ stats.best_kg }}</div>
-                <div class="exc-best-label">kg max</div>
+            <div style="display:flex;align-items:flex-start;gap:0.5rem;">
+                {% if stats.best_kg > 0 %}
+                <div class="exc-best">
+                    <div class="exc-best-kg">{{ stats.best_kg }}</div>
+                    <div class="exc-best-label">kg max</div>
+                </div>
+                {% endif %}
+                <a href="{% url 'egzersiz_sil' program.pk exercise.pk %}"
+                   onclick="return confirm('{{ exercise.name }} silinsin mi? Bu egzersize ait tüm kayıtlar da silinir.')"
+                   style="padding:0.3rem 0.55rem;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--red,#f87171);text-decoration:none;font-size:0.78rem;white-space:nowrap;line-height:1.4;"
+                   title="Egzersizi sil">🗑️</a>
             </div>
-            {% endif %}
         </div>
 
         {% if stats.history|length > 1 %}
@@ -208,6 +254,68 @@
     {% empty %}
     <p style="color:var(--text-muted);text-align:center;padding:2rem 0;">Henüz egzersiz eklenmedi.</p>
     {% endfor %}
+
+    <!-- Haftalık Karşılaştırma -->
+    {% if has_multi_week %}
+    <div class="section-label">Haftalık Karşılaştırma</div>
+
+    {% for week_row in weekly_comparison %}
+    {% if week_row.week_index > 1 and week_row.exercises %}
+    <div class="wc-card">
+        <div class="wc-week-title">{{ week_row.week_label }}</div>
+
+        <!-- Tablo başlığı -->
+        <div class="wc-row" style="padding-bottom:0.3rem;margin-bottom:0.1rem;">
+            <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-muted);">Egzersiz</div>
+            <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-muted);text-align:right;">Max KG</div>
+            <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-muted);text-align:right;">Hacim</div>
+        </div>
+
+        {% for exercise in exercises %}
+        {% with entry=week_row.exercises|get_item:exercise.pk %}
+        {% if entry %}
+        <div class="wc-row">
+            <div class="wc-name">{{ exercise.name }}</div>
+
+            <!-- Max KG + delta -->
+            <div class="wc-stat">
+                <div class="wc-val">{{ entry.max_kg }} kg</div>
+                {% if entry.diff_kg is not None %}
+                    {% if entry.diff_kg > 0 %}
+                    <div class="wc-delta pos">+{{ entry.diff_kg }} kg</div>
+                    {% elif entry.diff_kg < 0 %}
+                    <div class="wc-delta neg">{{ entry.diff_kg }} kg</div>
+                    {% else %}
+                    <div class="wc-delta">—</div>
+                    {% endif %}
+                {% endif %}
+            </div>
+
+            <!-- Hacim + delta -->
+            <div class="wc-stat">
+                <div class="wc-val" style="color:var(--text-muted);font-weight:700;">{{ entry.total_volume }}</div>
+                {% if entry.diff_vol is not None %}
+                    {% if entry.diff_vol > 0 %}
+                    <div class="wc-delta pos">+{{ entry.diff_vol }}</div>
+                    {% elif entry.diff_vol < 0 %}
+                    <div class="wc-delta neg">{{ entry.diff_vol }}</div>
+                    {% else %}
+                    <div class="wc-delta">—</div>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        {% endwith %}
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endfor %}
+
+    <div style="font-size:0.68rem;color:var(--text-muted);margin-bottom:1.5rem;">
+        Hacim = toplam kg × tekrar. Yeşil artış, gri azalış veya değişim yok.
+    </div>
+    {% endif %}
 
     <!-- Son Antrenman -->
     {% if son_log %}

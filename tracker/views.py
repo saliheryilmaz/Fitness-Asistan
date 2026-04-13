@@ -691,6 +691,76 @@ def program_detay(request, pk):
     program = get_object_or_404(WorkoutProgram, pk=pk, user=request.user)
     exercises = program.exercises.all()
 
+    # Haftalık karşılaştırma: her antrenman logunu haftasına göre grupla
+    all_logs = WorkoutLog.objects.filter(
+        user=request.user, program=program
+    ).prefetch_related('sets__exercise').order_by('date')
+
+    def get_week_key(d):
+        # ISO hafta: (yıl, hafta_no)
+        iso = d.isocalendar()
+        return (iso[0], iso[1])
+
+    # Hafta bazında egzersiz → max_kg ve toplam volume
+    weekly_data = {}  # {week_key: {ex_pk: {max_kg, total_volume, total_reps, set_count}}}
+    week_order = []
+    for log in all_logs:
+        wk = get_week_key(log.date)
+        if wk not in weekly_data:
+            weekly_data[wk] = {}
+            week_order.append(wk)
+        for s in log.sets.all():
+            epk = s.exercise_id
+            if epk not in weekly_data[wk]:
+                weekly_data[wk][epk] = {'max_kg': 0, 'total_volume': 0, 'total_reps': 0, 'set_count': 0}
+            d = weekly_data[wk][epk]
+            d['max_kg'] = max(d['max_kg'], s.weight_kg)
+            d['total_volume'] += s.weight_kg * s.reps
+            d['total_reps'] += s.reps
+            d['set_count'] += 1
+
+    # Haftalık karşılaştırma listesi (son 8 hafta)
+    week_order = week_order[-8:]
+    weekly_comparison = []  # [{week_label, ex_pk → {current, prev, diff_kg, diff_vol, trend}}]
+    for i, wk in enumerate(week_order):
+        prev_wk = week_order[i - 1] if i > 0 else None
+        week_label = f"Hafta {i + 1} ({wk[0]}-H{wk[1]})"
+        row = {'week_label': week_label, 'week_index': i + 1, 'exercises': {}}
+        for ex in exercises:
+            epk = ex.pk
+            cur = weekly_data[wk].get(epk)
+            prev = weekly_data[prev_wk].get(epk) if prev_wk else None
+            if cur is None:
+                continue
+            entry = {
+                'max_kg': cur['max_kg'],
+                'total_volume': round(cur['total_volume'], 1),
+                'total_reps': cur['total_reps'],
+                'set_count': cur['set_count'],
+                'prev_max_kg': prev['max_kg'] if prev else None,
+                'prev_volume': round(prev['total_volume'], 1) if prev else None,
+                'diff_kg': None,
+                'diff_vol': None,
+                'trend': 'new',
+            }
+            if prev:
+                entry['diff_kg'] = round(cur['max_kg'] - prev['max_kg'], 2)
+                entry['diff_vol'] = round(cur['total_volume'] - prev['total_volume'], 1)
+                if entry['diff_kg'] > 0:
+                    entry['trend'] = 'up'
+                elif entry['diff_kg'] < 0:
+                    entry['trend'] = 'down'
+                else:
+                    # kg aynı ama volume farklı olabilir
+                    if entry['diff_vol'] > 0:
+                        entry['trend'] = 'vol_up'
+                    elif entry['diff_vol'] < 0:
+                        entry['trend'] = 'vol_down'
+                    else:
+                        entry['trend'] = 'same'
+            row['exercises'][epk] = entry
+        weekly_comparison.append(row)
+
     exercise_stats = {}
     for ex in exercises:
         logs = SetLog.objects.filter(
@@ -723,7 +793,6 @@ def program_detay(request, pk):
 
     son_log = WorkoutLog.objects.filter(user=request.user, program=program).first()
 
-    # Son antrenman setlerini egzersiz bazında grupla
     son_log_data = []
     if son_log:
         for ex in exercises:
@@ -737,7 +806,18 @@ def program_detay(request, pk):
         'exercise_stats': exercise_stats,
         'son_log': son_log,
         'son_log_data': son_log_data,
+        'weekly_comparison': weekly_comparison,
+        'has_multi_week': len(week_order) >= 2,
     })
+
+
+@login_required
+def egzersiz_sil(request, program_pk, exercise_pk):
+    program = get_object_or_404(WorkoutProgram, pk=program_pk, user=request.user)
+    exercise = get_object_or_404(Exercise, pk=exercise_pk, program=program)
+    exercise.delete()
+    messages.success(request, f'🗑️ {exercise.name} silindi.')
+    return redirect('program_detay', pk=program_pk)
 
 
 @login_required
