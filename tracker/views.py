@@ -630,7 +630,6 @@ def antrenman(request):
     programs = WorkoutProgram.objects.filter(user=request.user).prefetch_related('exercises')
 
     hafta_basi = date.today() - timedelta(days=date.today().weekday())
-    # Bu hafta yapılan antrenman günleri
     bu_hafta_loglar = WorkoutLog.objects.filter(
         user=request.user, date__gte=hafta_basi
     ).values_list('date', flat=True)
@@ -646,22 +645,57 @@ def antrenman(request):
             'toplam_seans': toplam,
         }
 
-    # Haftalık takvim (Pzt-Paz), hangi günlerde antrenman yapıldı
+    # Haftalık takvim (Pzt-Paz)
     gun_kisalar = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz']
     bugun_idx = date.today().weekday()
+
+    # Bu haftanın tüm loglarını çek (set detaylarıyla birlikte)
+    bu_hafta_tum_loglar = WorkoutLog.objects.filter(
+        user=request.user, date__gte=hafta_basi
+    ).select_related('program').prefetch_related('sets__exercise').order_by('date')
+
+    # Gün → loglar dict
+    gun_log_map = {}
+    for log in bu_hafta_tum_loglar:
+        d = str(log.date)
+        if d not in gun_log_map:
+            gun_log_map[d] = []
+        gun_log_map[d].append(log)
+
+    # Hafta özeti için JSON (popup'ta kullanılacak)
+    hafta_ozet_json = {}
+    for log in bu_hafta_tum_loglar:
+        d = str(log.date)
+        if d not in hafta_ozet_json:
+            hafta_ozet_json[d] = []
+        egzersizler = []
+        for ex in log.program.exercises.all():
+            sets = log.sets.filter(exercise=ex).order_by('set_number')
+            if sets.exists():
+                egzersizler.append({
+                    'name': ex.name,
+                    'sets': [{'set': s.set_number, 'kg': float(s.weight_kg), 'reps': s.reps} for s in sets]
+                })
+        hafta_ozet_json[d].append({
+            'program': log.program.name,
+            'egzersizler': egzersizler,
+            'notes': log.notes,
+        })
+
     hafta_gunleri = []
     for i, kisa in enumerate(gun_kisalar):
         gun_tarihi = hafta_basi + timedelta(days=i)
-        # O gün yapılan antrenman logu
-        log_o_gun = WorkoutLog.objects.filter(
-            user=request.user, date=gun_tarihi
-        ).select_related('program').first()
+        gun_str = str(gun_tarihi)
+        loglar = gun_log_map.get(gun_str, [])
+        log_o_gun = loglar[0] if loglar else None
         hafta_gunleri.append({
             'kisa': kisa,
+            'tarih': gun_str,
             'bugun': i == bugun_idx,
-            'yapildi': log_o_gun is not None,
+            'yapildi': bool(loglar),
             'gelecek': gun_tarihi > date.today(),
             'program_adi': log_o_gun.program.name if log_o_gun else None,
+            'idx': i,
         })
 
     return render(request, 'tracker/antrenman.html', {
@@ -669,6 +703,8 @@ def antrenman(request):
         'program_meta': program_meta,
         'hafta_gunleri': hafta_gunleri,
         'bu_hafta_gun_sayisi': bu_hafta_gun_sayisi,
+        'hafta_ozet_json': json.dumps(hafta_ozet_json, ensure_ascii=False),
+        'gun_kisalar_json': json.dumps(gun_kisalar, ensure_ascii=False),
     })
 
 

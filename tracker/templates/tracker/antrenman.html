@@ -25,7 +25,10 @@
     min-height: 64px;
     justify-content: flex-start;
     padding-top: 0.6rem;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
 }
+.week-cell:hover { border-color: #3a4a3a; background: rgba(255,255,255,0.03); }
 .week-cell.today {
     border-color: var(--green);
     color: var(--green);
@@ -96,7 +99,10 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    cursor: pointer;
+    transition: border-color 0.15s;
 }
+.hafta-ozet:hover { border-color: #3a4a3a; }
 .hafta-sayi {
     font-size: 2rem;
     font-weight: 800;
@@ -121,7 +127,33 @@
     padding: 1.5rem;
     width: 100%;
     max-width: 480px;
+    max-height: 80vh;
+    overflow-y: auto;
 }
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+}
+.modal-close {
+    background: none; border: none;
+    color: var(--text-muted);
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: 0.2rem;
+}
+.popup-day-block {
+    margin-bottom: 1.1rem;
+    padding-bottom: 1.1rem;
+    border-bottom: 1px solid var(--border);
+}
+.popup-day-block:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.popup-prog-name { font-weight: 700; font-size: 0.9rem; margin-bottom: 0.5rem; }
+.popup-ex-name { font-size: 0.82rem; font-weight: 600; margin-bottom: 0.2rem; color: var(--text); }
+.popup-set-row { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.1rem; padding-left: 0.75rem; }
+.popup-set-row span { color: var(--text); }
+.popup-empty { font-size: 0.82rem; color: var(--text-muted); text-align: center; padding: 1.5rem 0; }
 </style>
 {% endblock %}
 
@@ -135,21 +167,22 @@
     </div>
 
     <!-- Haftalık özet -->
-    <div class="hafta-ozet">
+    <div class="hafta-ozet" onclick="openHaftaOzet()">
         <div>
             <div class="hafta-sayi">{{ bu_hafta_gun_sayisi }} <span>/ 5 gün</span></div>
             <div style="font-size:0.8rem;color:var(--text-muted);margin-top:0.2rem;">Bu hafta antrenman</div>
         </div>
         <div style="text-align:right;">
             <div style="font-size:0.82rem;color:var(--text-muted);">2 dinlenme günü</div>
-            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.15rem;">Pzt–Paz</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.15rem;">Pzt–Paz · detay için tıkla</div>
         </div>
     </div>
 
     <!-- Haftalık şerit -->
     <div class="week-strip">
         {% for gun in hafta_gunleri %}
-        <div class="week-cell {% if gun.bugun %}today{% endif %} {% if gun.yapildi %}done{% elif gun.gelecek %}rest{% endif %}">
+        <div class="week-cell {% if gun.bugun %}today{% endif %} {% if gun.yapildi %}done{% elif gun.gelecek %}rest{% endif %}"
+             onclick="openGunDetay('{{ gun.tarih }}', '{{ gun.kisa }}', {{ gun.yapildi|yesno:'true,false' }}, {{ gun.gelecek|yesno:'true,false' }})">
             <span>{{ gun.kisa }}</span>
             <div class="dot"></div>
             {% if gun.program_adi %}
@@ -194,13 +227,12 @@
 
 </div>
 
-<!-- Modal -->
+<!-- Program Ekle Modal -->
 <div id="modalEkle" class="modal-overlay" onclick="if(event.target===this)this.style.display='none'">
     <div class="modal-box">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
+        <div class="modal-header">
             <h3 style="font-weight:800;font-size:1.1rem;">Yeni Program</h3>
-            <button onclick="document.getElementById('modalEkle').style.display='none'"
-                style="background:none;border:none;color:var(--text-muted);font-size:1.25rem;cursor:pointer;">✕</button>
+            <button class="modal-close" onclick="document.getElementById('modalEkle').style.display='none'">✕</button>
         </div>
         <form method="post" action="{% url 'program_ekle' %}">
             {% csrf_token %}
@@ -220,4 +252,124 @@
         </form>
     </div>
 </div>
+
+<!-- Hafta Özet Popup -->
+<div id="modalHaftaOzet" class="modal-overlay" onclick="if(event.target===this)this.style.display='none'">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3 style="font-weight:800;font-size:1.1rem;" id="haftaOzetBaslik">Bu Hafta</h3>
+            <button class="modal-close" onclick="document.getElementById('modalHaftaOzet').style.display='none'">✕</button>
+        </div>
+        <div id="haftaOzetIcerik"></div>
+    </div>
+</div>
+
+<!-- Gün Detay Popup -->
+<div id="modalGunDetay" class="modal-overlay" onclick="if(event.target===this)this.style.display='none'">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3 style="font-weight:800;font-size:1.1rem;" id="gunDetayBaslik">—</h3>
+            <button class="modal-close" onclick="document.getElementById('modalGunDetay').style.display='none'">✕</button>
+        </div>
+        <div id="gunDetayIcerik"></div>
+    </div>
+</div>
+
+<script>
+const HAFTA_DATA = {{ hafta_ozet_json|safe }};
+const GUN_KISALAR = {{ gun_kisalar_json|safe }};
+const PROGRAMS = [{% for p in programs %}{"pk": {{ p.pk }}, "name": "{{ p.name }}"}{% if not forloop.last %},{% endif %}{% endfor %}];
+
+function renderLoglar(loglar) {
+    if (!loglar || loglar.length === 0) return '<div class="popup-empty">Bu gün antrenman kaydı yok.</div>';
+    let html = '';
+    for (const log of loglar) {
+        html += `<div class="popup-day-block">`;
+        html += `<div class="popup-prog-name">🏋️ ${log.program}</div>`;
+        if (log.egzersizler.length === 0) {
+            html += `<div style="font-size:0.78rem;color:var(--text-muted);">Set kaydı bulunamadı.</div>`;
+        }
+        for (const ex of log.egzersizler) {
+            html += `<div class="popup-ex-name">${ex.name}</div>`;
+            for (const s of ex.sets) {
+                html += `<div class="popup-set-row">Set ${s.set} — <span>${s.kg} kg × ${s.reps} tekrar</span></div>`;
+            }
+        }
+        if (log.notes) {
+            html += `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.5rem;">📝 ${log.notes}</div>`;
+        }
+        html += `</div>`;
+    }
+    return html;
+}
+
+function openHaftaOzet() {
+    const gunler = ['Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi','Pazar'];
+    // Haftanın başlangıç tarihini hesapla
+    const bugun = new Date();
+    const haftaBasi = new Date(bugun);
+    haftaBasi.setDate(bugun.getDate() - bugun.getDay() + (bugun.getDay() === 0 ? -6 : 1));
+
+    let html = '';
+    let toplamAntrenman = 0;
+
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(haftaBasi);
+        d.setDate(haftaBasi.getDate() + i);
+        const tarih = d.toISOString().split('T')[0];
+        const loglar = HAFTA_DATA[tarih];
+        if (loglar && loglar.length > 0) {
+            toplamAntrenman++;
+            html += `<div style="margin-bottom:0.4rem;font-size:0.7rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);">${gunler[i]} · ${tarih}</div>`;
+            html += renderLoglar(loglar);
+        }
+    }
+
+    if (html === '') {
+        html = '<div class="popup-empty">Bu hafta henüz antrenman kaydı yok.</div>';
+    }
+
+    document.getElementById('haftaOzetBaslik').textContent = `Bu Hafta — ${toplamAntrenman} antrenman`;
+    document.getElementById('haftaOzetIcerik').innerHTML = html;
+    document.getElementById('modalHaftaOzet').style.display = 'flex';
+}
+
+function openGunDetay(tarih, kisaAd, yapildi, gelecek) {
+    const gunler = ['Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi','Pazar'];
+    const d = new Date(tarih + 'T00:00:00');
+    const gunAdi = gunler[d.getDay() === 0 ? 6 : d.getDay() - 1];
+
+    document.getElementById('gunDetayBaslik').textContent = `${gunAdi} · ${tarih}`;
+
+    const loglar = HAFTA_DATA[tarih];
+    let html = '';
+
+    if (loglar && loglar.length > 0) {
+        html = renderLoglar(loglar);
+    } else if (gelecek) {
+        html = `<div class="popup-empty" style="padding:1rem 0;">Henüz gelmedi.</div>`;
+        if (PROGRAMS.length > 0) {
+            html += `<div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.75rem;text-align:center;">Hangi programı başlatmak istersin?</div>`;
+            html += `<div style="display:flex;flex-direction:column;gap:0.5rem;">`;
+            for (const p of PROGRAMS) {
+                html += `<a href="/antrenman/program/${p.pk}/baslat/" class="btn-start" style="text-align:center;padding:0.65rem;">${p.name}</a>`;
+            }
+            html += `</div>`;
+        }
+    } else {
+        html = `<div class="popup-empty">Bu gün antrenman yapılmadı.</div>`;
+        if (PROGRAMS.length > 0) {
+            html += `<div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.75rem;text-align:center;">Geçmiş tarih için kayıt eklemek ister misin?</div>`;
+            html += `<div style="display:flex;flex-direction:column;gap:0.5rem;">`;
+            for (const p of PROGRAMS) {
+                html += `<a href="/antrenman/program/${p.pk}/baslat/" class="btn-ghost" style="text-align:center;padding:0.65rem;">${p.name}</a>`;
+            }
+            html += `</div>`;
+        }
+    }
+
+    document.getElementById('gunDetayIcerik').innerHTML = html;
+    document.getElementById('modalGunDetay').style.display = 'flex';
+}
+</script>
 {% endblock %}
