@@ -352,7 +352,7 @@ function openGunDetay(tarih, kisaAd, yapildi, gelecek) {
             html += `<div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.75rem;text-align:center;">Hangi programı başlatmak istersin?</div>`;
             html += `<div style="display:flex;flex-direction:column;gap:0.5rem;">`;
             for (const p of PROGRAMS) {
-                html += `<a href="/antrenman/program/${p.pk}/baslat/" class="btn-start" style="text-align:center;padding:0.65rem;">${p.name}</a>`;
+                html += `<a href="/antrenman/program/${p.pk}/baslat/?tarih=${tarih}" class="btn-start" style="text-align:center;padding:0.65rem;">${p.name}</a>`;
             }
             html += `</div>`;
         }
@@ -362,7 +362,7 @@ function openGunDetay(tarih, kisaAd, yapildi, gelecek) {
             html += `<div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.75rem;text-align:center;">Geçmiş tarih için kayıt eklemek ister misin?</div>`;
             html += `<div style="display:flex;flex-direction:column;gap:0.5rem;">`;
             for (const p of PROGRAMS) {
-                html += `<a href="/antrenman/program/${p.pk}/baslat/" class="btn-ghost" style="text-align:center;padding:0.65rem;">${p.name}</a>`;
+                html += `<a href="/antrenman/program/${p.pk}/baslat/?tarih=${tarih}" class="btn-ghost" style="text-align:center;padding:0.65rem;">${p.name}</a>`;
             }
             html += `</div>`;
         }

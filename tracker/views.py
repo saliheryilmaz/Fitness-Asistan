@@ -878,6 +878,14 @@ def antrenman_baslat(request, program_pk):
     program = get_object_or_404(WorkoutProgram, pk=program_pk, user=request.user)
     exercises = program.exercises.all()
 
+    # Tarih parametresi: ?tarih=2026-04-22 gibi geçmiş/gelecek gün için
+    tarih_param = request.GET.get('tarih', '')
+    try:
+        from datetime import datetime
+        antrenman_tarihi = datetime.strptime(tarih_param, '%Y-%m-%d').date()
+    except (ValueError, TypeError):
+        antrenman_tarihi = date.today()
+
     son_log = WorkoutLog.objects.filter(
         user=request.user, program=program
     ).prefetch_related('sets__exercise').first()
@@ -887,7 +895,7 @@ def antrenman_baslat(request, program_pk):
 
     if son_log:
         for s in son_log.sets.all():
-            key = str(s.exercise.pk)  # string key — JS uyumluluğu için
+            key = str(s.exercise.pk)
             if key not in onceki_setler:
                 onceki_setler[key] = []
             onceki_setler[key].append({'kg': s.weight_kg, 'reps': s.reps})
@@ -919,6 +927,7 @@ def antrenman_baslat(request, program_pk):
         'exercises': exercises,
         'onceki_setler': json.dumps(onceki_setler),
         'oneri': json.dumps(oneri),
+        'antrenman_tarihi': str(antrenman_tarihi),
     })
 
 
@@ -926,9 +935,18 @@ def antrenman_baslat(request, program_pk):
 def antrenman_kaydet(request, program_pk):
     if request.method == 'POST':
         program = get_object_or_404(WorkoutProgram, pk=program_pk, user=request.user)
+
+        # Tarih: formdan gelen değeri kullan, yoksa bugün
+        tarih_str = request.POST.get('antrenman_tarihi', '')
+        try:
+            from datetime import datetime
+            kayit_tarihi = datetime.strptime(tarih_str, '%Y-%m-%d').date()
+        except (ValueError, TypeError):
+            kayit_tarihi = date.today()
+
         log = WorkoutLog.objects.create(
             user=request.user, program=program,
-            date=date.today(),
+            date=kayit_tarihi,
             notes=request.POST.get('notes', '')
         )
         for exercise in program.exercises.all():
@@ -946,7 +964,7 @@ def antrenman_kaydet(request, program_pk):
                     )
                 set_num += 1
         messages.success(request, '💪 Antrenman kaydedildi!')
-        return redirect('program_detay', pk=program_pk)
+        return redirect('antrenman')
     return redirect('antrenman')
 
 
