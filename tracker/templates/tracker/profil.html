@@ -3,31 +3,47 @@
 
 {% block extra_css %}
 <style>
-.profil-wrap { max-width: 500px; margin: 0 auto; }
+.profil-wrap { max-width: 540px; margin: 0 auto; }
 .profil-wrap h1 { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 0.3rem; }
 .profil-avatar {
-    width: 72px;
-    height: 72px;
+    width: 72px; height: 72px;
     background: var(--green-glow);
     border: 2px solid rgba(74,222,128,0.3);
     border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.75rem;
-    margin-bottom: 1.5rem;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.75rem; margin-bottom: 1.5rem;
 }
-.bmi-badge {
-    background: var(--surface2);
+.analiz-card {
+    background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1rem;
-    margin-top: 1.25rem;
+    border-radius: 14px;
+    padding: 1.1rem 1.25rem;
+    margin-bottom: 0.75rem;
+}
+.analiz-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
 }
-.bmi-badge .bmi-val { font-family: var(--font-display); font-size: 1.5rem; font-weight: 800; color: var(--green); }
+.analiz-row:last-child { border-bottom: none; }
+.analiz-label { font-size: 0.82rem; color: var(--text-muted); }
+.analiz-val { font-size: 1rem; font-weight: 800; }
+.analiz-val.green { color: var(--green); }
+.analiz-val.amber { color: var(--amber); }
+.analiz-val.red { color: #f87171; }
+.analiz-val.blue { color: #60a5fa; }
+.yorum-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.65rem 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.yorum-item:last-child { border-bottom: none; }
+.yorum-ikon { font-size: 1.1rem; flex-shrink: 0; }
+.yorum-mesaj { font-size: 0.82rem; color: var(--text); line-height: 1.5; }
 .errorlist { list-style: none; color: var(--red); font-size: 0.82rem; margin-top: 0.3rem; }
 </style>
 {% endblock %}
@@ -38,6 +54,56 @@
     <h1>{{ user.first_name|default:user.username }}</h1>
     <p style="color:var(--text-muted); font-size:0.875rem; margin-bottom:2rem;">@{{ user.username }} · {{ user.email }}</p>
 
+    <!-- Analiz Kartları -->
+    {% if analiz.bmi %}
+    <div class="analiz-card">
+        <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.75rem;">📊 Vücut Analizi</div>
+        <div class="analiz-row">
+            <div class="analiz-label">BMI (Vücut Kitle İndeksi)</div>
+            <div class="analiz-val {{ analiz.bmi_renk }}">{{ analiz.bmi }} <span style="font-size:0.75rem;font-weight:600;color:var(--text-muted);">{{ analiz.bmi_kategori }}</span></div>
+        </div>
+        <div class="analiz-row">
+            <div class="analiz-label">İdeal Kilo Aralığı</div>
+            <div class="analiz-val" style="font-size:0.88rem;">{{ analiz.ideal_min }}–{{ analiz.ideal_max }} kg</div>
+        </div>
+        {% if analiz.bmr %}
+        <div class="analiz-row">
+            <div class="analiz-label">BMR (Bazal Metabolizma)</div>
+            <div class="analiz-val">{{ analiz.bmr }} <span style="font-size:0.75rem;font-weight:600;color:var(--text-muted);">kcal/gün</span></div>
+        </div>
+        {% endif %}
+        {% if analiz.tdee %}
+        <div class="analiz-row">
+            <div class="analiz-label">TDEE (Günlük Harcama)</div>
+            <div class="analiz-val green">{{ analiz.tdee }} <span style="font-size:0.75rem;font-weight:600;color:var(--text-muted);">kcal/gün</span></div>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if analiz.hedef_kalori_oneri %}
+    <div class="analiz-card">
+        <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.75rem;">🎯 Hedef Kalori Önerisi</div>
+        <div style="font-size:0.88rem;color:var(--text);line-height:1.6;">{{ analiz.hedef_yorum }}</div>
+        {% if analiz.hafta_tahmini %}
+        <div style="font-size:0.78rem;color:var(--text-muted);margin-top:0.5rem;">Tahmini süre: {{ analiz.hafta_tahmini }} hafta</div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if analiz.yorumlar %}
+    <div class="analiz-card">
+        <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.75rem;">💡 Akıllı Yorumlar</div>
+        {% for yorum in analiz.yorumlar %}
+        <div class="yorum-item">
+            <div class="yorum-ikon">{{ yorum.ikon }}</div>
+            <div class="yorum-mesaj">{{ yorum.mesaj }}</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endif %}
+
+    <!-- Form -->
     <div class="card">
         <h3 style="font-size:1rem; font-weight:700; margin-bottom:1.5rem;">Profil Ayarları</h3>
         <form method="post">
@@ -49,21 +115,6 @@
                 {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
             </div>
             {% endfor %}
-
-            {% if profile.height_cm and profile.weight_kg %}
-            <div class="bmi-badge">
-                <div>
-                    <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">Vücut Kitle İndeksi</div>
-                    <div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.2rem;">{{ profile.height_cm }} cm · {{ profile.weight_kg }} kg</div>
-                </div>
-                <div class="bmi-val">
-                    {% widthratio profile.weight_kg 1 1 as w %}
-                    {% widthratio profile.height_cm 100 1 as h %}
-                    — 
-                </div>
-            </div>
-            {% endif %}
-
             <button type="submit" class="btn btn-primary" style="width:100%; margin-top:1rem;">Kaydet ✓</button>
         </form>
     </div>

@@ -391,11 +391,117 @@ def profil_duzenle(request):
         if form.is_valid():
             form.save()
             messages.success(request, 'Profil güncellendi! ✅')
-            return redirect('dashboard')
+            return redirect('profil_duzenle')
     else:
         form = ProfilForm(instance=profile)
 
-    return render(request, 'tracker/profil.html', {'form': form, 'profile': profile})
+    # BMI hesapla
+    analiz = {}
+    p = profile
+    if p.height_cm and p.weight_kg and p.height_cm > 0:
+        h_m = p.height_cm / 100
+        bmi = round(p.weight_kg / (h_m ** 2), 1)
+        if bmi < 18.5:
+            bmi_kategori = 'Zayıf'
+            bmi_renk = 'blue'
+        elif bmi < 25:
+            bmi_kategori = 'Normal'
+            bmi_renk = 'green'
+        elif bmi < 30:
+            bmi_kategori = 'Fazla Kilolu'
+            bmi_renk = 'amber'
+        else:
+            bmi_kategori = 'Obez'
+            bmi_renk = 'red'
+
+        # İdeal kilo aralığı (BMI 18.5–24.9)
+        ideal_min = round(18.5 * h_m ** 2, 1)
+        ideal_max = round(24.9 * h_m ** 2, 1)
+
+        # BMR — Mifflin-St Jeor
+        if p.age:
+            if p.gender == 'kadin':
+                bmr = 10 * p.weight_kg + 6.25 * p.height_cm - 5 * p.age - 161
+            else:
+                bmr = 10 * p.weight_kg + 6.25 * p.height_cm - 5 * p.age + 5
+        else:
+            bmr = None
+
+        # TDEE — aktivite çarpanı
+        aktivite_carpan = {
+            'sedanter': 1.2,
+            'hafif': 1.375,
+            'orta': 1.55,
+            'aktif': 1.725,
+            'cok_aktif': 1.9,
+        }
+        carpan = aktivite_carpan.get(p.activity_level or 'orta', 1.55)
+        tdee = round(bmr * carpan) if bmr else None
+
+        # Hedef kalori önerisi
+        hedef_kalori_oneri = None
+        hedef_yorum = ''
+        if tdee and p.target_weight_kg:
+            fark = p.target_weight_kg - p.weight_kg
+            if fark > 0.5:
+                hedef_kalori_oneri = tdee + 300
+                hedef_yorum = f'Kilo almak için günde ~{hedef_kalori_oneri} kcal önerilir (+300 surplus)'
+            elif fark < -0.5:
+                hedef_kalori_oneri = tdee - 500
+                hedef_yorum = f'Kilo vermek için günde ~{hedef_kalori_oneri} kcal önerilir (-500 defisit)'
+            else:
+                hedef_kalori_oneri = tdee
+                hedef_yorum = f'Kilonu korumak için günde ~{tdee} kcal önerilir'
+
+        # Hedefe kaç hafta
+        hafta_tahmini = None
+        if p.target_weight_kg and abs(p.target_weight_kg - p.weight_kg) > 0.5:
+            kg_fark = abs(p.target_weight_kg - p.weight_kg)
+            hafta_tahmini = round(kg_fark / 0.5)  # haftada ~0.5kg sağlıklı değişim
+
+        # Akıllı yorumlar
+        yorumlar = []
+        if bmi < 18.5:
+            yorumlar.append({'ikon': '⚠️', 'mesaj': f'BMI {bmi} — Zayıf kategorisinde. Kalori alımını artırman önerilir.'})
+        elif bmi < 25:
+            yorumlar.append({'ikon': '✅', 'mesaj': f'BMI {bmi} — Sağlıklı kilo aralığındasın.'})
+        elif bmi < 30:
+            yorumlar.append({'ikon': '⚠️', 'mesaj': f'BMI {bmi} — Fazla kilolu kategorisinde. Hafif kalori açığı ve egzersiz önerilir.'})
+        else:
+            yorumlar.append({'ikon': '🔴', 'mesaj': f'BMI {bmi} — Obez kategorisinde. Bir uzmana danışman önerilir.'})
+
+        if tdee and p.daily_calorie_goal:
+            fark_hedef = p.daily_calorie_goal - tdee
+            if fark_hedef > 600:
+                yorumlar.append({'ikon': '⚠️', 'mesaj': f'Günlük kalori hedefiniz ({p.daily_calorie_goal} kcal) TDEE\'nden {fark_hedef} kcal fazla. Hızlı kilo alımına yol açabilir.'})
+            elif fark_hedef < -700:
+                yorumlar.append({'ikon': '⚠️', 'mesaj': f'Günlük kalori hedefiniz ({p.daily_calorie_goal} kcal) çok düşük. Kas kaybı riski var.'})
+            else:
+                yorumlar.append({'ikon': '✅', 'mesaj': f'Kalori hedefiniz ({p.daily_calorie_goal} kcal) TDEE\'nize ({tdee} kcal) göre makul.'})
+
+        if p.target_weight_kg and hafta_tahmini:
+            yon = 'almanız' if p.target_weight_kg > p.weight_kg else 'vermeniz'
+            yorumlar.append({'ikon': '🎯', 'mesaj': f'Hedef kiloya ({p.target_weight_kg} kg) ulaşmak için tahminen {hafta_tahmini} hafta gerekir.'})
+
+        analiz = {
+            'bmi': bmi,
+            'bmi_kategori': bmi_kategori,
+            'bmi_renk': bmi_renk,
+            'ideal_min': ideal_min,
+            'ideal_max': ideal_max,
+            'bmr': round(bmr) if bmr else None,
+            'tdee': tdee,
+            'hedef_kalori_oneri': hedef_kalori_oneri,
+            'hedef_yorum': hedef_yorum,
+            'hafta_tahmini': hafta_tahmini,
+            'yorumlar': yorumlar,
+        }
+
+    return render(request, 'tracker/profil.html', {
+        'form': form,
+        'profile': profile,
+        'analiz': analiz,
+    })
 
 
 @login_required

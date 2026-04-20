@@ -4,6 +4,7 @@ from django.utils import timezone
 
 
 class UserProfile(models.Model):
+    GENDER_CHOICES = [('erkek', 'Erkek'), ('kadin', 'Kadın')]
     google_fit_token = models.TextField(blank=True, null=True)
     google_fit_refresh_token = models.TextField(blank=True, null=True)
     burned_calories_manual = models.IntegerField(default=0)
@@ -13,6 +14,8 @@ class UserProfile(models.Model):
     weight_kg = models.FloatField(null=True, blank=True)
     age = models.IntegerField(null=True, blank=True)
     target_weight_kg = models.FloatField(null=True, blank=True, verbose_name="Hedef Kilo (kg)")
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, blank=True, default='erkek', verbose_name="Cinsiyet")
+    activity_level = models.CharField(max_length=20, blank=True, default='orta', verbose_name="Aktivite Seviyesi")
     
     def __str__(self):
         return f"{self.user.username} - Profil"

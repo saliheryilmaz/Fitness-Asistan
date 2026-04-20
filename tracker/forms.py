@@ -22,19 +22,32 @@ class KayitForm(UserCreationForm):
 class ProfilForm(forms.ModelForm):
     class Meta:
         model = UserProfile
-        fields = ['daily_calorie_goal', 'height_cm', 'weight_kg', 'target_weight_kg', 'age']
+        fields = ['daily_calorie_goal', 'height_cm', 'weight_kg', 'target_weight_kg', 'age', 'gender', 'activity_level']
         labels = {
             'daily_calorie_goal': 'Günlük Kalori Hedefi (kcal)',
             'height_cm': 'Boy (cm)',
             'weight_kg': 'Mevcut Kilo (kg)',
             'target_weight_kg': 'Hedef Kilo (kg)',
             'age': 'Yaş',
+            'gender': 'Cinsiyet',
+            'activity_level': 'Aktivite Seviyesi',
+        }
+        widgets = {
+            'gender': forms.Select(attrs={'class': 'form-input'}, choices=[('erkek', 'Erkek'), ('kadin', 'Kadın')]),
+            'activity_level': forms.Select(attrs={'class': 'form-input'}, choices=[
+                ('sedanter', 'Hareketsiz (masa başı iş)'),
+                ('hafif', 'Hafif aktif (haftada 1-3 gün)'),
+                ('orta', 'Orta aktif (haftada 3-5 gün)'),
+                ('aktif', 'Çok aktif (haftada 6-7 gün)'),
+                ('cok_aktif', 'Ekstra aktif (günde 2x antrenman)'),
+            ]),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for field in self.fields.values():
-            field.widget.attrs['class'] = 'form-input'
+        for name, field in self.fields.items():
+            if name not in ('gender', 'activity_level'):
+                field.widget.attrs['class'] = 'form-input'
 
 
 class WeightLogForm(forms.ModelForm):
