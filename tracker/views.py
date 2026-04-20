@@ -804,6 +804,38 @@ def antrenman(request):
             'idx': i,
         })
 
+    # ─── AYLIK TAKVİM ───────────────────────────────────────────
+    # Son 3 ayın tüm antrenman loglarını çek
+    uc_ay_once = date.today() - timedelta(days=90)
+    tum_loglar = WorkoutLog.objects.filter(
+        user=request.user, date__gte=uc_ay_once
+    ).select_related('program').prefetch_related('sets__exercise').order_by('date')
+
+    # Tüm günler için JSON (takvimde kullanılacak)
+    takvim_json = {}
+    for log in tum_loglar:
+        d = str(log.date)
+        if d not in takvim_json:
+            takvim_json[d] = []
+        egzersizler = []
+        for ex in log.program.exercises.all():
+            sets = log.sets.filter(exercise=ex).order_by('set_number')
+            if sets.exists():
+                egzersizler.append({
+                    'name': ex.name,
+                    'sets': [{'set': s.set_number, 'kg': float(s.weight_kg), 'reps': s.reps} for s in sets]
+                })
+        takvim_json[d].append({
+            'program': log.program.name,
+            'egzersizler': egzersizler,
+            'notes': log.notes,
+        })
+
+    # Mevcut ay bilgisi
+    bugun = date.today()
+    ay_adi = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+              'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'][bugun.month - 1]
+
     return render(request, 'tracker/antrenman.html', {
         'programs': programs,
         'program_meta': program_meta,
@@ -811,6 +843,10 @@ def antrenman(request):
         'bu_hafta_gun_sayisi': bu_hafta_gun_sayisi,
         'hafta_ozet_json': json.dumps(hafta_ozet_json, ensure_ascii=False),
         'gun_kisalar_json': json.dumps(gun_kisalar, ensure_ascii=False),
+        'takvim_json': json.dumps(takvim_json, ensure_ascii=False),
+        'bugun_str': str(bugun),
+        'ay_adi': ay_adi,
+        'yil': bugun.year,
     })
 
 

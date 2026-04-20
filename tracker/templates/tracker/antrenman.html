@@ -4,44 +4,6 @@
 
 {% block extra_css %}
 <style>
-.week-strip {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 6px;
-    margin-bottom: 1.75rem;
-}
-.week-cell {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    padding: 0.55rem 0.2rem;
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    background: var(--surface);
-    font-size: 0.7rem;
-    color: var(--text-muted);
-    font-weight: 600;
-    min-height: 64px;
-    justify-content: flex-start;
-    padding-top: 0.6rem;
-    cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
-}
-.week-cell:hover { border-color: #3a4a3a; background: rgba(255,255,255,0.03); }
-.week-cell.today {
-    border-color: var(--green);
-    color: var(--green);
-    background: rgba(74,222,128,0.06);
-}
-.week-cell.done .dot { background: var(--green); }
-.week-cell.rest .dot { background: var(--text-muted); opacity: 0.4; }
-.dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: var(--border);
-}
-
 .prog-card {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -148,6 +110,78 @@
     padding-bottom: 1.1rem;
     border-bottom: 1px solid var(--border);
 }
+
+/* Aylık Takvim */
+.calendar-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.1rem 1.25rem;
+    margin-bottom: 1.5rem;
+}
+.calendar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+.calendar-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text);
+}
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+}
+.cal-day-label {
+    text-align: center;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 0.4rem 0;
+}
+.cal-day {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+}
+.cal-day:hover { border-color: #3a4a3a; background: rgba(255,255,255,0.03); }
+.cal-day.empty { border: none; background: none; cursor: default; }
+.cal-day.today {
+    border-color: var(--green);
+    color: var(--green);
+    font-weight: 800;
+}
+.cal-day.has-workout {
+    background: rgba(74,222,128,0.08);
+    border-color: rgba(74,222,128,0.3);
+    color: var(--text);
+}
+.cal-day.has-workout::after {
+    content: '';
+    position: absolute;
+    bottom: 3px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--green);
+}
+.cal-day.future { opacity: 0.3; cursor: default; }
+.cal-day.future:hover { border-color: var(--border); background: var(--surface2); }
 .popup-day-block:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
 .popup-prog-name { font-weight: 700; font-size: 0.9rem; margin-bottom: 0.5rem; }
 .popup-ex-name { font-size: 0.82rem; font-weight: 600; margin-bottom: 0.2rem; color: var(--text); }
@@ -178,18 +212,15 @@
         </div>
     </div>
 
-    <!-- Haftalık şerit -->
-    <div class="week-strip">
-        {% for gun in hafta_gunleri %}
-        <div class="week-cell {% if gun.bugun %}today{% endif %} {% if gun.yapildi %}done{% elif gun.gelecek %}rest{% endif %}"
-             onclick="openGunDetay('{{ gun.tarih }}', '{{ gun.kisa }}', {{ gun.yapildi|yesno:'true,false' }}, {{ gun.gelecek|yesno:'true,false' }})">
-            <span>{{ gun.kisa }}</span>
-            <div class="dot"></div>
-            {% if gun.program_adi %}
-            <span style="font-size:0.55rem;color:var(--green);text-align:center;line-height:1.2;margin-top:1px;word-break:break-word;">{{ gun.program_adi|truncatechars:8 }}</span>
-            {% endif %}
+    <!-- Aylık Takvim -->
+    <div class="calendar-wrap">
+        <div class="calendar-header">
+            <div class="calendar-title">📅 {{ ay_adi }} {{ yil }}</div>
+            <div style="font-size:0.72rem;color:var(--text-muted);">Son 3 ay</div>
         </div>
-        {% endfor %}
+        <div class="calendar-grid" id="calendarGrid">
+            <!-- JavaScript ile doldurulacak -->
+        </div>
     </div>
 
     <!-- Programlar -->
@@ -277,8 +308,71 @@
 
 <script>
 const HAFTA_DATA = {{ hafta_ozet_json|safe }};
+const TAKVIM_DATA = {{ takvim_json|safe }};
+const BUGUN_STR = '{{ bugun_str }}';
 const GUN_KISALAR = {{ gun_kisalar_json|safe }};
 const PROGRAMS = [{% for p in programs %}{"pk": {{ p.pk }}, "name": "{{ p.name }}"}{% if not forloop.last %},{% endif %}{% endfor %}];
+
+// Takvim render
+function renderCalendar() {
+    const bugun = new Date(BUGUN_STR + 'T00:00:00');
+    const yil = bugun.getFullYear();
+    const ay = bugun.getMonth();
+
+    // Ayın ilk günü
+    const ilkGun = new Date(yil, ay, 1);
+    const ilkGunHaftaGunu = ilkGun.getDay(); // 0=Pazar, 1=Pzt
+    const pazartesiOffset = ilkGunHaftaGunu === 0 ? 6 : ilkGunHaftaGunu - 1;
+
+    // Ayın son günü
+    const sonGun = new Date(yil, ay + 1, 0);
+    const gunSayisi = sonGun.getDate();
+
+    const grid = document.getElementById('calendarGrid');
+    grid.innerHTML = '';
+
+    // Gün başlıkları
+    const gunler = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+    gunler.forEach(g => {
+        const label = document.createElement('div');
+        label.className = 'cal-day-label';
+        label.textContent = g;
+        grid.appendChild(label);
+    });
+
+    // Boş hücreler (ayın başından önceki)
+    for (let i = 0; i < pazartesiOffset; i++) {
+        const empty = document.createElement('div');
+        empty.className = 'cal-day empty';
+        grid.appendChild(empty);
+    }
+
+    // Günler
+    for (let gun = 1; gun <= gunSayisi; gun++) {
+        const tarih = new Date(yil, ay, gun);
+        const tarihStr = tarih.toISOString().split('T')[0];
+        const bugunMu = tarihStr === BUGUN_STR;
+        const gelecekMi = tarih > bugun;
+        const loglar = TAKVIM_DATA[tarihStr];
+
+        const cell = document.createElement('div');
+        cell.className = 'cal-day';
+        if (bugunMu) cell.classList.add('today');
+        if (gelecekMi) cell.classList.add('future');
+        if (loglar && loglar.length > 0) cell.classList.add('has-workout');
+
+        cell.textContent = gun;
+
+        if (!gelecekMi) {
+            const gunKisa = gunler[tarih.getDay() === 0 ? 6 : tarih.getDay() - 1];
+            cell.onclick = () => openGunDetay(tarihStr, gunKisa, !!loglar, false);
+        }
+
+        grid.appendChild(cell);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', renderCalendar);
 
 function renderLoglar(loglar) {
     if (!loglar || loglar.length === 0) return '<div class="popup-empty">Bu gün antrenman kaydı yok.</div>';
@@ -341,7 +435,8 @@ function openGunDetay(tarih, kisaAd, yapildi, gelecek) {
 
     document.getElementById('gunDetayBaslik').textContent = `${gunAdi} · ${tarih}`;
 
-    const loglar = HAFTA_DATA[tarih];
+    // Önce TAKVIM_DATA'dan bak (tüm geçmiş), yoksa HAFTA_DATA'dan
+    const loglar = TAKVIM_DATA[tarih] || HAFTA_DATA[tarih];
     let html = '';
 
     if (loglar && loglar.length > 0) {
