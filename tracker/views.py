@@ -851,6 +851,60 @@ def antrenman(request):
 
 
 @login_required
+def antrenman_gecmis(request):
+    filter_date = request.GET.get('tarih')
+    logs = WorkoutLog.objects.filter(user=request.user).select_related('program').prefetch_related('sets__exercise').order_by('-date')
+
+    if filter_date:
+        try:
+            from datetime import datetime
+            filter_dt = datetime.strptime(filter_date, '%Y-%m-%d').date()
+            logs = logs.filter(date=filter_dt)
+        except ValueError:
+            pass
+
+    # Gruplama
+    grouped = {}
+    for log in logs:
+        key = log.date
+        if key not in grouped:
+            grouped[key] = {'logs': [], 'total_volume': 0}
+        grouped[key]['logs'].append(log)
+        
+        # O günkü logun hacmini (volume) hesapla
+        volume = sum(s.weight_kg * s.reps for s in log.sets.all())
+        grouped[key]['total_volume'] += volume
+
+    # Son 30 gün istatistikleri
+    today = date.today()
+    last_30 = today - timedelta(days=30)
+    recent_logs = WorkoutLog.objects.filter(user=request.user, date__gte=last_30)
+    
+    workout_count = recent_logs.count()
+    
+    # En çok çalışılan program (son 30 gün)
+    favorite_program = "Yok"
+    if workout_count > 0:
+        from django.db.models import Count
+        fav = recent_logs.values('program__name').annotate(count=Count('program')).order_by('-count').first()
+        if fav:
+            favorite_program = fav['program__name']
+
+    # Toplam set (son 30 gün)
+    total_sets = SetLog.objects.filter(workout_log__in=recent_logs).count()
+    
+    context = {
+        'grouped_logs': sorted(grouped.items(), key=lambda x: x[0], reverse=True),
+        'filter_date': filter_date,
+        'workout_count': workout_count,
+        'favorite_program': favorite_program,
+        'total_sets': total_sets,
+    }
+    return render(request, 'tracker/antrenman_gecmis.html', context)
+
+
+
+@login_required
 def program_ekle(request):
     if request.method == 'POST':
         name = request.POST.get('name', '').strip()
@@ -996,6 +1050,32 @@ def egzersiz_sil(request, program_pk, exercise_pk):
     exercise.delete()
     messages.success(request, f'🗑️ {exercise.name} silindi.')
     return redirect('program_detay', pk=program_pk)
+
+
+@login_required
+def egzersiz_duzenle(request, program_pk, exercise_pk):
+    program = get_object_or_404(WorkoutProgram, pk=program_pk, user=request.user)
+    exercise = get_object_or_404(Exercise, pk=exercise_pk, program=program)
+    
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        category = request.POST.get('category', 'diger')
+        target_sets = int(request.POST.get('target_sets', 3) or 3)
+        target_reps = int(request.POST.get('target_reps', 10) or 10)
+        
+        if name:
+            exercise.name = name
+            exercise.category = category
+            exercise.target_sets = target_sets
+            exercise.target_reps = target_reps
+            exercise.save()
+            messages.success(request, f'✅ {name} güncellendi!')
+            return redirect('program_detay', pk=program_pk)
+            
+    return render(request, 'tracker/egzersiz_duzenle.html', {
+        'program': program,
+        'exercise': exercise
+    })
 
 
 @login_required

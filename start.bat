@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo   Kalori Takip Uygulamasi Baslatiliyor
+echo   Fitness Asistan Uygulamasi Baslatiliyor
 echo ========================================
 echo.
 

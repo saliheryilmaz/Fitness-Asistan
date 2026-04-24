@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#080c12">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>{% block title %}Kalori Takip{% endblock %}</title>
+    <title>{% block title %}Fitness Asistan{% endblock %}</title>
     {% load static %}
     <link rel="icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}">
     <link rel="manifest" href="/static/manifest.json">
@@ -312,7 +312,7 @@
         <div class="nav-inner">
             <a href="{% url 'dashboard' %}" class="nav-logo">
                 <div class="logo-dot"></div>
-                Kalori Takip
+                Fitness Asistan
             </a>
             <div class="nav-links">
                 <a href="{% url 'dashboard' %}" {% if request.resolver_match.url_name == 'dashboard' %}class="active"{% endif %}>Dashboard</a>
@@ -329,7 +329,7 @@
     <div class="mobile-topbar">
         <a href="{% url 'dashboard' %}" class="nav-logo">
             <div class="logo-dot"></div>
-            Kalori Takip
+            Fitness Asistan
         </a>
         <div class="topbar-right">
             <a href="{% url 'cikis' %}" class="topbar-out">Çıkış</a>

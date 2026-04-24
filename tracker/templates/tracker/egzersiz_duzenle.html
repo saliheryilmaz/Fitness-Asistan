@@ -1,0 +1,44 @@
+{% extends 'tracker/base.html' %}
+{% block title %}Egzersiz Düzenle{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div style="margin-bottom:1.5rem;">
+        <a href="{% url 'program_detay' program.pk %}" style="font-size:0.82rem;color:var(--text-muted);text-decoration:none;">← Geri</a>
+        <h1 style="font-size:1.4rem;font-weight:800;margin-top:0.4rem;">Egzersizi Düzenle: {{ exercise.name }}</h1>
+    </div>
+
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:1.1rem 1.25rem;">
+        <form method="post">
+            {% csrf_token %}
+            <div style="display:grid;grid-template-columns:1fr;gap:0.6rem;margin-bottom:1rem;">
+                <div>
+                    <label style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.2rem;display:block;">Egzersiz Adı</label>
+                    <input type="text" name="name" class="form-input" value="{{ exercise.name }}" required>
+                </div>
+                <div>
+                    <label style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.2rem;display:block;">Kategori</label>
+                    <select name="category" class="form-input">
+                        {% for value, label in exercise.CATEGORIES %}
+                        <option value="{{ value }}" {% if exercise.category == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;">
+                    <div>
+                        <label style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.2rem;display:block;">Hedef Set</label>
+                        <input type="number" name="target_sets" class="form-input" value="{{ exercise.target_sets }}" min="1" max="10">
+                    </div>
+                    <div>
+                        <label style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.2rem;display:block;">Hedef Tekrar</label>
+                        <input type="number" name="target_reps" class="form-input" value="{{ exercise.target_reps }}" min="1" max="100">
+                    </div>
+                </div>
+            </div>
+            <button type="submit" style="width:100%;padding:0.65rem;background:var(--green);border:none;border-radius:10px;color:#000;font-weight:800;cursor:pointer;font-size:0.88rem;">
+                Kaydet
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

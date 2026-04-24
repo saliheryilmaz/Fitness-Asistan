@@ -3,11 +3,13 @@ from . import views
 
 urlpatterns = [
     path('antrenman/', views.antrenman, name='antrenman'),
+    path('antrenman/gecmis/', views.antrenman_gecmis, name='antrenman_gecmis'),
     path('antrenman/program/ekle/', views.program_ekle, name='program_ekle'),
     path('antrenman/program/<int:pk>/', views.program_detay, name='program_detay'),
     path('antrenman/program/<int:pk>/sil/', views.program_sil, name='program_sil'),
     path('antrenman/program/<int:program_pk>/egzersiz/ekle/', views.egzersiz_ekle, name='egzersiz_ekle'),
     path('antrenman/program/<int:program_pk>/egzersiz/<int:exercise_pk>/sil/', views.egzersiz_sil, name='egzersiz_sil'),
+    path('antrenman/program/<int:program_pk>/egzersiz/<int:exercise_pk>/duzenle/', views.egzersiz_duzenle, name='egzersiz_duzenle'),
     path('antrenman/program/<int:program_pk>/baslat/', views.antrenman_baslat, name='antrenman_baslat'),
     path('antrenman/program/<int:program_pk>/kaydet/', views.antrenman_kaydet, name='antrenman_kaydet'),
     path('yakilan-kalori/', views.yakilan_kalori_gir, name='yakilan_kalori_gir'),

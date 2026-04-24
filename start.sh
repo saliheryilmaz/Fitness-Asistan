@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "========================================"
-echo "  Kalori Takip Uygulaması Başlatılıyor"
+echo "  Fitness Asistan Uygulaması Başlatılıyor"
 echo "========================================"
 echo ""
 

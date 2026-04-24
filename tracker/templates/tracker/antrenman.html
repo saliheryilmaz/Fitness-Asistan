@@ -196,8 +196,11 @@
 
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
         <h1 style="font-size:1.4rem;font-weight:800;">Antrenman</h1>
-        <button onclick="document.getElementById('modalEkle').style.display='flex'"
-            class="btn-start">+ Program</button>
+        <div style="display:flex; gap:0.5rem;">
+            <a href="{% url 'antrenman_gecmis' %}" class="btn-ghost" style="padding:0.5rem 1rem;">Geçmiş</a>
+            <button onclick="document.getElementById('modalEkle').style.display='flex'"
+                class="btn-start">+ Program</button>
+        </div>
     </div>
 
     <!-- Haftalık özet -->

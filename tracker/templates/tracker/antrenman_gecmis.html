@@ -1,0 +1,217 @@
+{% extends 'tracker/base.html' %}
+{% block title %}Antrenman Geçmişi — Fitness Asistan{% endblock %}
+
+{% block extra_css %}
+<style>
+.page-header { margin-bottom: 1.5rem; }
+.page-header h1 { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.5px; }
+
+/* STATS */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+.stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1rem 1.25rem;
+    position: relative;
+    overflow: hidden;
+}
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--accent-color, var(--green));
+    border-radius: 14px 14px 0 0;
+}
+.stat-card .label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.3rem; }
+.stat-card .value { font-size: 1.4rem; font-weight: 800; line-height: 1; }
+.stat-card .sub { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.3rem; }
+
+/* FILTER */
+.filter-bar {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+.filter-chip {
+    padding: 0.4rem 0.85rem;
+    border-radius: 99px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.15s;
+}
+.filter-chip.active, .filter-chip:hover {
+    background: var(--green-glow);
+    border-color: var(--green);
+    color: var(--green);
+}
+.filter-bar input[type="date"] {
+    padding: 0.4rem 0.75rem;
+    border-radius: 99px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.8rem;
+}
+
+/* GÜN GRUBU */
+.day-group { margin-bottom: 1.5rem; }
+.day-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.6rem;
+    padding: 0.6rem 0.75rem;
+    background: var(--surface2);
+    border-radius: 10px;
+    border-left: 3px solid var(--green);
+}
+.day-date { font-weight: 700; font-size: 0.9rem; }
+.day-meta { display: flex; align-items: center; gap: 0.75rem; font-size: 0.8rem; }
+.day-cal { color: var(--green); font-weight: 700; }
+
+/* LOG SATIRI */
+.log-row {
+    padding: 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 0.6rem;
+    transition: border-color 0.2s, transform 0.15s;
+}
+.log-row:hover { border-color: rgba(74,222,128,0.25); transform: translateX(2px); }
+.log-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--surface2);
+}
+.log-program { font-weight: 800; font-size: 1.1rem; color: var(--green); }
+.log-notes { font-size: 0.8rem; color: var(--text-muted); font-style: italic; }
+
+.ex-block { margin-bottom: 0.75rem; }
+.ex-block:last-child { margin-bottom: 0; }
+.ex-name { font-size: 0.9rem; font-weight: 700; margin-bottom: 0.3rem; }
+.set-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+.set-pill {
+    font-size: 0.75rem;
+    background: var(--surface2);
+    color: var(--text-muted);
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+}
+.set-pill span { color: var(--text); font-weight: 600; }
+
+.empty-state { text-align: center; padding: 4rem 2rem; color: var(--text-muted); }
+.empty-state .icon { font-size: 3rem; margin-bottom: 1rem; }
+
+@media (max-width: 640px) {
+    .stats-grid { grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem;">
+        <div>
+            <h1 style="font-size:1.75rem; font-weight:800; letter-spacing:-0.5px;">Antrenman Geçmişi </h1>
+            <p style="color:var(--text-muted); font-size:0.875rem; margin-top:0.3rem;">Son 30 günlük antrenman istatistiklerin</p>
+        </div>
+        <a href="{% url 'antrenman' %}" class="filter-chip">Geri Dön</a>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-grid">
+        <div class="stat-card" style="--accent-color: var(--green);">
+            <div class="label">Toplam Antrenman</div>
+            <div class="value text-green">{{ workout_count }}</div>
+            <div class="sub">son 30 günde</div>
+        </div>
+        <div class="stat-card" style="--accent-color: var(--amber);">
+            <div class="label">Tamamlanan Set</div>
+            <div class="value" style="color:var(--amber);">{{ total_sets }}</div>
+            <div class="sub">son 30 günde</div>
+        </div>
+    </div>
+
+    <!-- FILTER -->
+    <div class="filter-bar">
+        <a href="{% url 'antrenman_gecmis' %}" class="filter-chip {% if not filter_date %}active{% endif %}">Tümü</a>
+        <form method="get" style="display:flex;gap:0.5rem;align-items:center;">
+            <input type="date" name="tarih" value="{{ filter_date }}" onchange="this.form.submit()">
+            {% if filter_date %}
+            <a href="{% url 'antrenman_gecmis' %}" class="filter-chip">✕ Temizle</a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- GROUPED LOGS -->
+    {% if grouped_logs %}
+        {% for day_date, day_data in grouped_logs %}
+        <div class="day-group">
+            <div class="day-header">
+                <div class="day-date">{{ day_date|date:"d F Y, l" }}</div>
+                <div class="day-meta">
+                    <span class="day-cal">{{ day_data.total_volume|floatformat:0 }} kg Toplam Hacim</span>
+                    <span style="color:var(--text-muted);">{{ day_data.logs|length }} antrenman</span>
+                </div>
+            </div>
+            
+            {% for log in day_data.logs %}
+            <div class="log-row">
+                <div class="log-header">
+                    <div class="log-program">{{ log.program.name }}</div>
+                    {% if log.notes %}
+                    <div class="log-notes">📝 {{ log.notes }}</div>
+                    {% endif %}
+                </div>
+                
+                {% regroup log.sets.all by exercise as exercise_list %}
+                
+                {% for exercise in exercise_list %}
+                <div class="ex-block">
+                    <div class="ex-name">{{ exercise.grouper.name }}</div>
+                    <div class="set-pills">
+                        {% for set in exercise.list %}
+                            <div class="set-pill">
+                                Set {{ set.set_number }}: <span>{{ set.weight_kg|floatformat:1 }}kg x {{ set.reps }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% empty %}
+                <div style="font-size:0.8rem; color:var(--text-muted);">Set kaydı yok.</div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <div class="icon">📭</div>
+            <p>Seçilen filtrede antrenman kaydı yok.</p>
+            <a href="{% url 'antrenman' %}" style="color:var(--green); display:block; margin-top:0.75rem;">Antrenmanlara Git</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
